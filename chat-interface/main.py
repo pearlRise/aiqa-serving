@@ -1,6 +1,6 @@
 import sys
 from datetime import datetime
-from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLineEdit, QPushButton, QScrollArea, QLabel, QFrame, QGraphicsOpacityEffect)
+from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout, QSizePolicy, QHBoxLayout, QLineEdit, QPushButton, QScrollArea, QLabel, QFrame, QGraphicsOpacityEffect)
 from PySide6.QtCore import Qt, QTimer, QPoint, QPropertyAnimation
 from PySide6.QtGui import QTextOption
 
@@ -12,31 +12,46 @@ class ChatItem(QWidget):
         self.main_layout.setContentsMargins(0, 5, 0, 5)
         self.main_layout.setSpacing(5)
 
-        # [수정] 텍스트의 모든 글자 사이에 '폭이 없는 공백(\u200B)'을 끼워 넣음.
-        # 이렇게 하면 시각적으로는 전혀 티가 안 나지만, QLabel은 "아! 글자마다 띄어쓰기가 있네?" 
-        # 하고 착각해서 영역 끝에 닿으면 즉시 글자 단위로 줄바꿈을 해버림.
+        # 1. 텍스트 설정 (글자 단위 줄바꿈을 위한 꼼수 유지)
         formatted_text = "\u200B".join(list(text))
-        
-        # 1. 말풍선 생성 및 줄바꿈 설정
         self.bubble = QLabel(formatted_text)
-        self.bubble.setWordWrap(True) 
+        self.bubble.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        self.bubble.setCursor(Qt.IBeamCursor)
+        self.bubble.setWordWrap(True)
+        # [추가] 텍스트 포맷을 PlainText로 강제하여 쓸데없는 여백이나 리치텍스트 변환 방지
+        self.bubble.setTextFormat(Qt.PlainText) 
         
-        self.bubble.setMaximumWidth(200)
-        from PySide6.QtWidgets import QSizePolicy
-        self.bubble.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Minimum)
+        # [핵심] 너비 정밀 계산 (마진율 증가)
+        fm = self.bubble.fontMetrics()
+        # 실제 텍스트 폭 + 패딩(좌12+우12=24) + 여유 마진(8~10px) = 34px
+        # 이 여유 마진 덕분에 '가'가 잘리거나 '가나'가 조기 줄바꿈되는 현상이 완벽히 사라짐
+        real_text_width = fm.horizontalAdvance(text) + 34 
+        max_bubble_width = 210
+        
+        if real_text_width < max_bubble_width:
+            # 210px 이전: 계산된 너비로 완전히 고정하여 1줄 출력 보장
+            self.bubble.setFixedWidth(real_text_width)
+        else:
+            # 210px 초과: 최대 너비에 도달하면 그때부터 글자 단위 줄바꿈 발동
+            self.bubble.setFixedWidth(max_bubble_width)
+
+        # 세로 크기 정책 (내용에 딱 맞게 타이트하게 유지)
+        self.bubble.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Minimum)
+        
         bg_color = "#FEE500" if is_me else "#FFFFFF"
         
-        # [추가 팁] line-height와 padding을 살짝 넉넉히 주면 한글 받침이 잘리는 것도 방지돼
+        # padding 상하 7px, 좌우 12px 적용
         common_style = f"""
             color: #000000; 
             border-radius: 12px; 
-            padding: 10px 12px; 
+            padding: 7px 12px; 
             font-size: 13px; 
-            line-height: 1.3;
             background-color: {bg_color};
+            border: none;
         """
         self.bubble.setStyleSheet(common_style)
-        # 2. 시간 라벨 (이전과 동일)
+
+        # 2. 시간 라벨
         curr_time = datetime.now().strftime("%H:%M")
         self.time_label = QLabel(curr_time)
         self.time_label.setStyleSheet("color: #556677; font-size: 10px;")
@@ -164,7 +179,9 @@ class ChatInterface(QMainWindow):
 
         input_height = 32
         self.input_field = QLineEdit()
-        self.input_field.setPlaceholderText("iMessage")
+        self.input_field.setPlaceholderText("Let's have a conversation!")
+        self.input_field.setContextMenuPolicy(Qt.DefaultContextMenu)
+        self.input_field.setFocusPolicy(Qt.StrongFocus)
         self.input_field.setFixedHeight(input_height)
         self.input_field.setStyleSheet(f"""
             QLineEdit {{
