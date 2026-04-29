@@ -5,8 +5,8 @@ from datetime import datetime
 
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
-    QLineEdit, QPushButton, QScrollArea, QLabel, QFrame, 
-    QGraphicsOpacityEffect, QTextBrowser, QTextEdit, QSizePolicy
+    QPushButton, QScrollArea, QLabel, QFrame, 
+    QGraphicsOpacityEffect, QTextBrowser, QTextEdit
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QTextOption, QPainter, QPainterPath, QColor
