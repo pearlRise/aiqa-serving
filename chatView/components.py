@@ -1,7 +1,6 @@
-import math
-from PySide6.QtWidgets import QFrame, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextBrowser, QTextEdit
+from PySide6.QtWidgets import QFrame, QTextEdit
 from PySide6.QtCore import Qt, Signal
-from PySide6.QtGui import QPainter, QPainterPath, QColor, QTextOption
+from PySide6.QtGui import QPainter, QPainterPath, QColor
 
 # 말풍선 배경 프레임
 class BubbleFrame(QFrame):

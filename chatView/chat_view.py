@@ -1,8 +1,6 @@
-import math
-from datetime import datetime
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame, QGraphicsOpacityEffect, QPushButton
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
-from components import BubbleFrame, CustomInput
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QScrollArea, QFrame, QTextBrowser
+from PySide6.QtCore import Qt
+from components import BubbleFrame
 
 class ChatItem(QWidget):
     def __init__(self, text, is_me=False, sender_name="", is_consecutive=False):
