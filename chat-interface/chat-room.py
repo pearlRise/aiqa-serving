@@ -214,7 +214,7 @@ class CustomInput(QTextEdit):
             super().keyPressEvent(event)
 
 # 3. 메인 인터페이스
-class ChatInterface(QMainWindow):
+class ChatView(QMainWindow):
     def __init__(self):
         super().__init__()
         
@@ -318,6 +318,9 @@ class ChatInterface(QMainWindow):
         self.last_sender_id = None
         self.last_chat_item = None
 
+        # 3.6. 진입 시 포커스 부여
+        self.input_field.setFocus()
+
     # 4. 기능 및 이벤트 로직
     # 4.1. 스크롤바 제어 로직
     def show_scrollbar(self, *args):
@@ -385,7 +388,7 @@ class ChatInterface(QMainWindow):
         
         # [수정] 창 크기가 변할 때마다 다이내믹 아일랜드를 가로 중앙, 상단 8px로 고정
         self.island.move(int((self.width() - self.island.width()) / 2), 8)
-        
+
         for i in range(self.chat_layout.count()):
             widget = self.chat_layout.itemAt(i).widget()
             if isinstance(widget, ChatItem):
@@ -429,6 +432,6 @@ class ChatInterface(QMainWindow):
 # 5. 실행 진입점
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = ChatInterface()
+    window = ChatView()
     window.show()
     sys.exit(app.exec())
