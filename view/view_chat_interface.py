@@ -297,7 +297,6 @@ class ChatView(QWidget):
         
         self.input_field = CustomInput()
         self.input_field.textChanged.connect(self.adjust_input_height)
-        self.input_field.returnPressed.connect(self.send_message)
         
         self.send_btn = QPushButton("↑")
         self.send_btn.setFixedSize(40, 40)
@@ -309,7 +308,6 @@ class ChatView(QWidget):
             }
             QPushButton:pressed { background-color: #0051A8; }
         """)
-        self.send_btn.clicked.connect(self.send_message)
         
         self.input_layout.addWidget(self.input_field)
         self.input_layout.addWidget(self.send_btn)
@@ -334,19 +332,6 @@ class ChatView(QWidget):
         self.scrollbar_anim.setStartValue(1.0)
         self.scrollbar_anim.setEndValue(0.0)
         self.scrollbar_anim.start()
-
-    # 4.2. 메시지 전송 및 렌더링
-    def send_message(self):
-        text = self.input_field.toPlainText().strip()
-        if not text:
-            return
-            
-        self.add_chat_bubble(text, is_me=True)
-        self.input_field.clear()
-        self.input_field.setFixedHeight(40)
-        
-        QTimer.singleShot(500, self, lambda: self.add_chat_bubble(f"에코: {text}", is_me=False, sender_name="Ollama Bot"))
-        QTimer.singleShot(1000, self, lambda: self.add_chat_bubble("추가 답변입니다.", is_me=False, sender_name="Ollama Bot"))
 
     def add_chat_bubble(self, text, is_me, sender_name=""):
         current_sender_id = "ME" if is_me else sender_name

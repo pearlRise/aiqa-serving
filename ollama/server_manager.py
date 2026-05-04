@@ -41,3 +41,20 @@ class ServerManager:
             self.process = None
             return True
         return False
+    
+    # server_manager.py 내부에 추가해야 할 로직
+    def chat(self, model_name, prompt):
+        try:
+            url = f"{self.api_base}/generate"
+            data = {
+                "model": model_name,
+                "prompt": prompt,
+                "stream": False 
+            }
+            response = requests.post(url, json=data, timeout=30)
+            if response.status_code == 200:
+                return response.json().get("response", "")
+            else:
+                return f"Error: {response.status_code}"
+        except Exception as e:
+            return f"Connection Failed: {str(e)}"
