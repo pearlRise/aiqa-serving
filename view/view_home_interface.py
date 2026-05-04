@@ -220,10 +220,10 @@ class HomeView(QWidget):
         self.dashboard_layout.setSpacing(0) 
 
         indicators_data = [
-            ("🟢", "Server", "Running"),
-            ("⚡", "Memory", "14.2 GB"),
-            ("🧠", "Active", "26B MoE"),
-            ("🌡️", "System", "M-Chip 45°C")
+            ("⌛️", "Server", "Loading"),
+            ("⚡", "Memory", "Loading"),
+            ("🧠", "Model", "Loading"),
+            ("🌡️", "System", "Loading")
         ]
         
         for idx, (icon, title, value) in enumerate(indicators_data):

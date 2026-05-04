@@ -3,7 +3,7 @@ import requests
 import os
 import signal
 
-class OllamaManager:
+class ServerManager:
     def __init__(self):
         self.api_base = "http://localhost:11434/api"
         self.process = None

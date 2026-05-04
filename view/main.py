@@ -7,19 +7,21 @@ project_root = os.path.abspath(os.path.join(current_dir, ".."))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
     
-from ollama.ollamamanager import OllamaManager
+from ollama.server_manager import ServerManager
+from ollama.chat_manager import ChatController
+
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QPushButton
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint, QEvent, QTimer
 
-from homeview import HomeView
-from chatview import ChatView
+from view.view_home_interface import HomeView
+from view.view_chat_interface import ChatView
 
 class MainController(QMainWindow):
     def __init__(self):
         super().__init__()
         
         # 1. 매니저 인스턴스 생성
-        self.ollama = OllamaManager()
+        self.ollama = ServerManager()
 
         # 2. 윈도우 기본 설정
         self.setMinimumSize(305, 655)
@@ -35,6 +37,7 @@ class MainController(QMainWindow):
         self.home_view.setParent(self.container)
 
         self.chat_view = ChatView()
+        self.chat_logic = ChatController(self.chat_view, self.ollama)
         self.chat_view.setParent(self.container)
 
         # 4. 이제 객체가 존재하므로 시그널들을 연결 ★
