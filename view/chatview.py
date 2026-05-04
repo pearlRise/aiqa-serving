@@ -4,7 +4,7 @@ import math
 from datetime import datetime
 
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, 
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
     QPushButton, QScrollArea, QLabel, QFrame, 
     QGraphicsOpacityEffect, QTextBrowser, QTextEdit
 )
@@ -138,6 +138,7 @@ class ChatItem(QWidget):
             self.bubble_hlayout.addStretch()
             
         self.update_width(305)
+        self.needs_width_update = False # [신규] 리사이즈 필요 여부 플래그
 
     def update_width(self, window_width=None):
         if window_width is not None:
@@ -214,19 +215,19 @@ class CustomInput(QTextEdit):
             super().keyPressEvent(event)
 
 # 3. 메인 인터페이스
-class ChatView(QMainWindow):
+class ChatView(QWidget):
     def __init__(self):
         super().__init__()
         
         # 3.1. 윈도우 및 메인 컨테이너 설정
-        self.setMinimumSize(305, 655)
-        self.resize(305, 655)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        
         self.container = QWidget()
         self.container.setObjectName("MainBody")
-        self.setCentralWidget(self.container)
+
+        # 자신(self)의 바탕 레이아웃을 만들고 컨테이너를 꽉 채워 넣음
+        base_layout = QVBoxLayout(self)
+        base_layout.setContentsMargins(0, 0, 0, 0)
+        base_layout.addWidget(self.container)
+        
         self.container.setStyleSheet("#MainBody { background-color: #ABC1D1; border: 1px solid #222; border-radius: 48px; }")        
         
         self.main_layout = QVBoxLayout(self.container)
@@ -277,6 +278,15 @@ class ChatView(QMainWindow):
         self.scroll.setWidget(self.chat_content)
         self.main_layout.addWidget(self.scroll, 1)
 
+        # [신규] 리사이즈 연산 부하를 줄이기 위한 디바운싱 타이머
+        self.resize_timer = QTimer(self)
+        self.resize_timer.setSingleShot(True)
+        self.resize_timer.timeout.connect(self.update_visible_bubbles)
+        self.last_width = self.width()
+
+        # [신규] 스크롤을 내릴 때 화면에 새로 들어오는 말풍선 업데이트
+        self.scroll.verticalScrollBar().valueChanged.connect(self.update_visible_bubbles)
+
         # 3.3. 하단 입력 영역 설정
         self.input_container = QWidget()
         self.input_layout = QHBoxLayout(self.input_container)
@@ -303,16 +313,6 @@ class ChatView(QMainWindow):
         self.input_layout.addWidget(self.input_field)
         self.input_layout.addWidget(self.send_btn)
         self.main_layout.addWidget(self.input_container, 0)
-
-        # 3.4. 다이내믹 아일랜드 오버레이 (최상단 부유 객체)
-        self.island = QFrame(self.container)
-        self.island.setFixedSize(120, 26)
-        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
-        self.island.raise_() # 스크롤 영역 위로 z-index 끌어올리기
-        
-        self.resizing = False
-        self.resize_margin = 10
-        self.old_pos = None
 
         # 3.5. 대화 그룹화 상태 추적 변수
         self.last_sender_id = None
@@ -381,57 +381,43 @@ class ChatView(QMainWindow):
     def scroll_to_bottom(self):
         scrollbar = self.scroll.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
-
-    # 4.5. 프레임리스 윈도우 마우스 이벤트 핸들러
+    
+    # 4.5. 화면 리사이즈 시 말풍선 너비 반응형 처리 (최적화 버전)
     def resizeEvent(self, event):
         super().resizeEvent(event)
         
-        # [수정] 창 크기가 변할 때마다 다이내믹 아일랜드를 가로 중앙, 상단 8px로 고정
-        self.island.move(int((self.width() - self.island.width()) / 2), 8)
+        # 너비가 실제로 변했을 때만 연산 준비
+        if self.width() != self.last_width:
+            self.last_width = self.width()
+            
+            # 모든 채팅 위젯에 '계산 필요함' 꼬리표 부착 (단순 변수 변경이라 부하 없음)
+            for i in range(self.chat_layout.count()):
+                item = self.chat_layout.itemAt(i)
+                if item and item.widget():
+                    widget = item.widget()
+                    if isinstance(widget, ChatItem):
+                        widget.needs_width_update = True
+            
+            # 창 드래그 중에는 연산을 미루고, 드래그가 멈추면(1ms 후) 한 번만 렌더링 실행
+            self.resize_timer.start(1)
+
+    # 4.6. 현재 화면(뷰포트)에 보이는 말풍선만 선택적 렌더링
+    def update_visible_bubbles(self):
+        scroll_y = self.scroll.verticalScrollBar().value()
+        viewport_height = self.scroll.viewport().height()
+        
+        # 스크롤 영역 위아래로 약간의 여유 공간(버퍼)을 두어 렌더링
+        buffer = 150 
+        visible_top = scroll_y - buffer
+        visible_bottom = scroll_y + viewport_height + buffer
 
         for i in range(self.chat_layout.count()):
-            widget = self.chat_layout.itemAt(i).widget()
-            if isinstance(widget, ChatItem):
-                widget.update_width(self.width())
-        QTimer.singleShot(0, self.scroll_to_bottom)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            pos = event.position().toPoint()
-            if pos.x() > self.width() - self.resize_margin or pos.y() > self.height() - self.resize_margin:
-                self.resizing = True
-            else:
-                self.old_pos = event.globalPosition().toPoint()
-
-    def mouseMoveEvent(self, event):
-        pos = event.position().toPoint()
-        
-        is_right = pos.x() > self.width() - self.resize_margin
-        is_bottom = pos.y() > self.height() - self.resize_margin
-        
-        if is_right and is_bottom:
-            self.setCursor(Qt.SizeFDiagCursor)
-        elif is_right:
-            self.setCursor(Qt.SizeHorCursor)
-        elif is_bottom:
-            self.setCursor(Qt.SizeVerCursor)
-        else:
-            self.setCursor(Qt.ArrowCursor)
-            
-        if self.resizing:
-            self.resize(max(self.minimumWidth(), pos.x()), max(self.minimumHeight(), pos.y()))
-        elif self.old_pos:
-            curr = event.globalPosition().toPoint()
-            self.move(self.pos() + curr - self.old_pos)
-            self.old_pos = curr
-
-    def mouseReleaseEvent(self, event):
-        self.resizing = False
-        self.old_pos = None
-
-# 5. 실행 진입점
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = ChatView()
-    window.show()
-    sys.exit(app.exec())
+            item = self.chat_layout.itemAt(i)
+            if item and item.widget():
+                widget = item.widget()
+                if isinstance(widget, ChatItem) and widget.needs_width_update:
+                    # 위젯의 Y 좌표가 가시 영역 내에 있는지 수학적 판별
+                    widget_y = widget.pos().y()
+                    if visible_top <= widget_y <= visible_bottom:
+                        widget.update_width(self.width())
+                        widget.needs_width_update = False # 렌더링 완료 꼬리표 떼기

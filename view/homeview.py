@@ -1,9 +1,9 @@
 import sys
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
+    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
     QScrollArea, QLabel, QFrame, QGraphicsOpacityEffect
 )
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, Signal
 from PySide6.QtGui import QFont, QCursor
 
 # 1. 커스텀 부드러운 스크롤 영역 (유지)
@@ -54,6 +54,8 @@ class IndicatorInfoCell(QFrame):
 
 # 3. 메뉴 리스트의 개별 아이템 (유지 - 클릭 유도를 위해 입체감 유지)
 class MenuListItem(GlassFrame):
+    clicked = Signal(str)
+
     def __init__(self, icon, title, subtitle):
         super().__init__(radius=16)
         self.setFixedHeight(72)
@@ -105,20 +107,26 @@ class MenuListItem(GlassFrame):
             }
         """)
         super().leaveEvent(event)
+    
+# ★ 마우스 클릭 이벤트 오버라이드
+    def mousePressEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            self.clicked.emit(self.title_label.text()) # 클릭된 메뉴의 타이틀을 밖으로 쏨
+        super().mousePressEvent(event)
 
 # 4. 홈 화면 메인 윈도우
-class HomeView(QMainWindow):
+class HomeView(QWidget):
+    chat_requested = Signal()
+
     def __init__(self):
         super().__init__()
-        
-        self.setMinimumSize(305, 655)
-        self.resize(305, 655)
-        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
-        self.setAttribute(Qt.WA_TranslucentBackground)
-        
         self.container = QWidget()
         self.container.setObjectName("MainBody")
-        self.setCentralWidget(self.container)
+        
+        # 자신(self)의 바탕 레이아웃을 만들고 컨테이너를 꽉 채워 넣음
+        base_layout = QVBoxLayout(self)
+        base_layout.setContentsMargins(0, 0, 0, 0)
+        base_layout.addWidget(self.container)
         
         self.container.setStyleSheet("""
             #MainBody { 
@@ -282,22 +290,16 @@ class HomeView(QMainWindow):
         
         for icon, title, sub in menus:
             item = MenuListItem(icon, title, sub)
+            
+            if title == "Ollama Chat":
+                # lambda 함수로 인자(_)를 받아서 무시하고 방출만 하도록 수정
+                item.clicked.connect(lambda _: self.chat_requested.emit())
             self.menu_layout.addWidget(item)
             
         self.scroll_layout.addLayout(self.menu_layout)
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
-
-        # 4.2. 다이내믹 아일랜드
-        self.island = QFrame(self.container)
-        self.island.setFixedSize(120, 26)
-        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
-        self.island.raise_()
-        
-        self.resizing = False
-        self.resize_margin = 10
-        self.old_pos = None
 
     def show_scrollbar(self, *args):
         self.scroll_effect.setOpacity(1.0)
@@ -309,42 +311,3 @@ class HomeView(QMainWindow):
         self.scrollbar_anim.setStartValue(1.0)
         self.scrollbar_anim.setEndValue(0.0)
         self.scrollbar_anim.start()
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.island.move(int((self.width() - self.island.width()) / 2), 8)
-
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            pos = event.position().toPoint()
-            if pos.x() > self.width() - self.resize_margin or pos.y() > self.height() - self.resize_margin:
-                self.resizing = True
-            else:
-                self.old_pos = event.globalPosition().toPoint()
-
-    def mouseMoveEvent(self, event):
-        pos = event.position().toPoint()
-        is_right = pos.x() > self.width() - self.resize_margin
-        is_bottom = pos.y() > self.height() - self.resize_margin
-        
-        if is_right and is_bottom: self.setCursor(Qt.SizeFDiagCursor)
-        elif is_right: self.setCursor(Qt.SizeHorCursor)
-        elif is_bottom: self.setCursor(Qt.SizeVerCursor)
-        else: self.setCursor(Qt.ArrowCursor)
-            
-        if self.resizing:
-            self.resize(max(self.minimumWidth(), pos.x()), max(self.minimumHeight(), pos.y()))
-        elif self.old_pos:
-            curr = event.globalPosition().toPoint()
-            self.move(self.pos() + curr - self.old_pos)
-            self.old_pos = curr
-
-    def mouseReleaseEvent(self, event):
-        self.resizing = False
-        self.old_pos = None
-
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    window = HomeView()
-    window.show()
-    sys.exit(app.exec())
