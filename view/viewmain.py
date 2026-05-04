@@ -1,6 +1,15 @@
 import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.abspath(os.path.join(current_dir, ".."))
+
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+    
+from ollama.ollamamanager import OllamaManager
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QPushButton
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint, QEvent
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint, QEvent, QTimer
 
 from homeview import HomeView
 from chatview import ChatView
@@ -9,12 +18,16 @@ class MainController(QMainWindow):
     def __init__(self):
         super().__init__()
         
+        # 1. 매니저 인스턴스 생성
+        self.ollama = OllamaManager()
+
+        # 2. 윈도우 기본 설정
         self.setMinimumSize(305, 655)
         self.resize(305, 655)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
-        # [수정] FixedSize 족쇄 제거
+        # 3. 중앙 컨테이너 및 뷰(View) 인스턴스 먼저 생성 ★ (이게 위로 올라와야 함)
         self.container = QWidget(self)
         self.setCentralWidget(self.container)
 
@@ -24,7 +37,14 @@ class MainController(QMainWindow):
         self.chat_view = ChatView()
         self.chat_view.setParent(self.container)
 
+        # 4. 이제 객체가 존재하므로 시그널들을 연결 ★
+        self.home_view.serve_requested.connect(self.toggle_ollama_serve)
         self.home_view.chat_requested.connect(self.slide_to_chat)
+
+        # 5. 상태 모니터링 타이머 시작
+        self.status_timer = QTimer(self)
+        self.status_timer.timeout.connect(self.check_ollama_status)
+        self.status_timer.start(2000)
 
         self.island = QFrame(self)
         self.island.setFixedSize(120, 26)
@@ -128,6 +148,7 @@ class MainController(QMainWindow):
         self.anim_group.addAnimation(anim_chat)
         self.anim_group.start()
 
+    # 7. 제스처 및 드래그 이벤트
     def eventFilter(self, obj, event):
         # 감지된 객체가 chat_view의 뷰포트인지 정확히 확인
         if obj == self.chat_view.scroll.viewport() and event.type() == QEvent.Wheel:
@@ -169,6 +190,27 @@ class MainController(QMainWindow):
     def mouseReleaseEvent(self, event):
         self.resizing = False
         self.old_pos = None
+
+    def toggle_ollama_serve(self):
+        if not self.ollama.is_running():
+            success, msg = self.ollama.start_server()
+            # 다이내믹 아일랜드나 로그 창에 msg 출력 로직 추가 가능
+        else:
+            self.ollama.stop_server()
+
+    # [상태 동기화] 타이머에 의해 주기적으로 실행
+    def check_ollama_status(self):
+        is_active = self.ollama.is_running()
+        
+        # 홈 뷰의 대시보드 데이터를 실시간으로 업데이트
+        # (HomeView에 status 업데이트 메서드를 미리 만들어두면 편해)
+        self.home_view.update_server_status(is_active)
+        
+        # 다이내믹 아일랜드에 작은 점 하나 찍어주는 연출도 좋겠지?
+        if is_active:
+            self.island.setStyleSheet("background-color: black; border: 1px solid #00FF00; border-radius: 13px;")
+        else:
+            self.island.setStyleSheet("background-color: black; border: 1px solid #FF0000; border-radius: 13px;")
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

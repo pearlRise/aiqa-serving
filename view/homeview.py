@@ -117,7 +117,7 @@ class MenuListItem(GlassFrame):
 # 4. 홈 화면 메인 윈도우
 class HomeView(QWidget):
     chat_requested = Signal()
-
+    serve_requested = Signal()
     def __init__(self):
         super().__init__()
         self.container = QWidget()
@@ -260,6 +260,11 @@ class HomeView(QWidget):
             val_label.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             val_label.setAlignment(Qt.AlignCenter) # 중앙 정렬 추가
             
+            # ★ [신규 추가] 타이틀이 "Server"일 경우, 나중에 상태를 업데이트하기 위해 변수에 저장
+            if title == "Server":
+                self.server_icon_label = icon_label
+                self.server_status_label = val_label
+            
             # 3. 설명 텍스트 (예: Server, Memory)
             title_label = QLabel(title)
             title_label.setStyleSheet("color: #666666; font-size: 11px; background: transparent; border: none;")
@@ -290,10 +295,13 @@ class HomeView(QWidget):
         
         for icon, title, sub in menus:
             item = MenuListItem(icon, title, sub)
-            
+
+            if title == "Ollama Serve":
+                item.clicked.connect(lambda _: self.serve_requested.emit())
+
             if title == "Ollama Chat":
-                # lambda 함수로 인자(_)를 받아서 무시하고 방출만 하도록 수정
                 item.clicked.connect(lambda _: self.chat_requested.emit())
+
             self.menu_layout.addWidget(item)
             
         self.scroll_layout.addLayout(self.menu_layout)
@@ -311,3 +319,19 @@ class HomeView(QWidget):
         self.scrollbar_anim.setStartValue(1.0)
         self.scrollbar_anim.setEndValue(0.0)
         self.scrollbar_anim.start()
+
+    # [신규] 서버 상태에 따라 대시보드 UI를 갱신하는 함수
+    def update_server_status(self, is_active):
+        # UI 객체가 아직 생성되지 않았을 때를 대비한 안전 장치
+        if not hasattr(self, 'server_status_label'): 
+            return
+            
+        if is_active:
+            self.server_status_label.setText("Running")
+            self.server_status_label.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            self.server_icon_label.setText("🟢")
+        else:
+            self.server_status_label.setText("Stopped")
+            # 꺼져있을 때는 직관적으로 알 수 있게 빨간색 텍스트로 변경
+            self.server_status_label.setStyleSheet("color: #FF3B30; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            self.server_icon_label.setText("🔴")

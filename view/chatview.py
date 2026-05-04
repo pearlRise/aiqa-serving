@@ -76,6 +76,7 @@ class ChatItem(QWidget):
         self.is_consecutive = is_consecutive
         self.has_tail = True
         self.last_window_width = 305
+        self.needs_width_update = False
         
         self.main_layout = QVBoxLayout(self)
         self.top_margin = 4 if is_consecutive else 12
@@ -398,6 +399,9 @@ class ChatView(QWidget):
                     if isinstance(widget, ChatItem):
                         widget.needs_width_update = True
             
+            # 창 드래그 중에는 연산을 미루고, 드래그가 멈추면(100ms 후) 한 번만 렌더링 실행
+            self.resize_timer.start(100)
+            
             # 창 드래그 중에는 연산을 미루고, 드래그가 멈추면(1ms 후) 한 번만 렌더링 실행
             self.resize_timer.start(1)
 
@@ -420,4 +424,4 @@ class ChatView(QWidget):
                     widget_y = widget.pos().y()
                     if visible_top <= widget_y <= visible_bottom:
                         widget.update_width(self.width())
-                        widget.needs_width_update = False # 렌더링 완료 꼬리표 떼기
+                        widget.needs_width_update = False # 렌더링 완료 꼬리표 떼기 
