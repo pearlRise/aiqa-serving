@@ -157,6 +157,11 @@ class ChatItem(QWidget):
         self.setFixedHeight(self.main_layout.sizeHint().height())
     def remove_tail_and_time(self):
         self.bg_frame.has_tail = False; self.bg_frame.update(); self.time_label.hide()
+        
+    def update_text(self, text):
+        self.bubble.setPlainText(text)
+        self.doc.setTextWidth(10000)
+        self.pure_ideal_width = math.ceil(self.doc.idealWidth())
 
 # 2.3 엔터 키 전송 및 자동 높이 조절 입력창
 class CustomInput(QTextEdit):

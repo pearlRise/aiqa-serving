@@ -2,6 +2,7 @@ import subprocess
 import requests
 import os
 import signal
+import json
 
 # 1.1 Ollama API 경로 및 프로세스 상태 초기화
 class ServerManager:
@@ -56,19 +57,22 @@ class ServerManager:
             return True
         return False
     
-    # 4.1 AI 모델 대화 요청 및 응답 데이터 처리
-    def chat(self, model_name, prompt):
+    # 4.1 AI 모델 대화 요청 및 스트리밍 응답 제너레이터
+    def chat_stream(self, model_name, prompt):
         try:
             url = f"{self.api_base}/generate"
             data = {
                 "model": model_name,
                 "prompt": prompt,
-                "stream": False 
+                "stream": True 
             }
-            response = requests.post(url, json=data, timeout=30)
-            if response.status_code == 200:
-                return response.json().get("response", "")
-            else:
-                return f"Error: {response.status_code}"
+            # stream=True 옵션으로 요청
+            response = requests.post(url, json=data, timeout=30, stream=True)
+            for line in response.iter_lines():
+                if line:
+                    chunk = json.loads(line.decode("utf-8"))
+                    yield chunk.get("response", "")
+                    if chunk.get("done"):
+                        break
         except Exception as e:
-            return f"Connection Failed: {str(e)}"
+            yield f"Connection Failed: {str(e)}"

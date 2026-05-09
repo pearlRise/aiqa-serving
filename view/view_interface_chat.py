@@ -129,6 +129,18 @@ class ChatView(QWidget):
         
         QTimer.singleShot(10, self.scroll_to_bottom)
 
+    # 4.3.1 마지막 AI 말풍선의 내용을 실시간으로 갱신 (Streaming)
+    def update_last_bubble_stream(self, chunk):
+        if self.last_chat_item and not self.last_chat_item.is_me:
+            current_text = self.last_chat_item.bubble.toPlainText()
+            if current_text == "{...}":
+                new_text = chunk
+            else:
+                new_text = current_text + chunk
+            self.last_chat_item.update_text(new_text)
+            self.last_chat_item.update_width(self.width())
+            self.scroll_to_bottom()
+
     # 4.4 입력 내용에 따른 입력창 높이 동적 조절
     def adjust_input_height(self):
         doc = self.input_field.document()
@@ -166,9 +178,8 @@ class ChatView(QWidget):
                     if isinstance(widget, ChatItem):
                         widget.needs_width_update = True
             
+            # 디바운싱: 드래그가 멈추고 100ms 후에 한 번만 재계산
             self.resize_timer.start(100)
-            
-            self.resize_timer.start(1)
 
     # 4.6 현재 가시 영역에 있는 말풍선 위젯만 선택적 갱신
     def update_visible_bubbles(self):

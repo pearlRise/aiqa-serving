@@ -15,8 +15,8 @@ from ollama.chat_manager import ChatController
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QPushButton
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint, QEvent, QTimer
 
-from view.view_interface_main import HomeView
-from view.view_chat_interface import ChatView
+from view.view_interface_home import HomeView
+from view.view_interface_chat import ChatView
 
 # 1.1 메인 컨트롤러 및 윈도우 관리 클래스
 class MainController(QMainWindow):
@@ -47,10 +47,13 @@ class MainController(QMainWindow):
         self.chat_view.setParent(self.container)
 
         # 1.4 프론트(View)와 백(Controller)의 상호작용 연결 (Internal API)
-        # 사용자가 전송 버튼 누름 -> 백엔드 로직 실행
-        self.chat_view.send_btn.clicked.connect(lambda: self.chat_logic.process_message(self.chat_view.input_field.toPlainText()))
-        # 백엔드 답변 도착 -> 프론트엔드에서 말풍선 추가
-        self.chat_logic.answer_received.connect(lambda msg: self.chat_view.add_chat_bubble(msg, is_me=False, sender_name="Gemma"))
+        # 사용자가 전송 버튼/엔터키 누름 -> 백엔드 로직 실행 및 입력창 비우기
+        self.chat_view.send_btn.clicked.connect(self.handle_send_message)
+        self.chat_view.input_field.returnPressed.connect(self.handle_send_message)
+        
+        # 1.5 스트리밍 시그널 연결
+        self.chat_logic.thinking_started.connect(lambda: self.chat_view.add_chat_bubble("{...}", is_me=False, sender_name="Gemma"))
+        self.chat_logic.chunk_delivered.connect(self.chat_view.update_last_bubble_stream)
 
         # 1.4 홈 뷰 시그널(서버 구동, 채팅 전환) 연결
         self.home_view.serve_requested.connect(self.toggle_ollama_serve)
@@ -97,6 +100,13 @@ class MainController(QMainWindow):
         self.resize_margin = 10
 
         self.chat_view.scroll.viewport().installEventFilter(self)
+
+    # 1.6 메시지 전송 통합 핸들러
+    def handle_send_message(self):
+        text = self.chat_view.input_field.toPlainText().strip()
+        if text:
+            self.chat_logic.process_message(text)
+            self.chat_view.input_field.clear()
 
     # 3.1 창 크기 변경에 따른 내부 뷰 및 아일랜드 위치 재조정
     def resizeEvent(self, event):
@@ -202,6 +212,11 @@ class MainController(QMainWindow):
     def mouseReleaseEvent(self, event):
         self.resizing = False
         self.old_pos = None
+        
+    # 6.3 창 닫기 이벤트 시 안전한 서버 종료 처리
+    def closeEvent(self, event):
+        self.ollama.stop_server()
+        event.accept()
 
     # 7.1 Ollama 서버 구동 및 중지 제어
     def toggle_ollama_serve(self):
