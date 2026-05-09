@@ -1,120 +1,9 @@
-import sys
-from PySide6.QtWidgets import (
-    QApplication, QWidget, QVBoxLayout, QHBoxLayout, QGridLayout,
-    QScrollArea, QLabel, QFrame, QGraphicsOpacityEffect
-)
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, QEasingCurve, Signal
-from PySide6.QtGui import QFont, QCursor
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect)
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
+from PySide6.QtGui import QFont
+from view.view_components import SmoothScrollArea, GlassFrame, IndicatorInfoCell, MenuListItem
 
-# 1. 커스텀 부드러운 스크롤 영역 (유지)
-class SmoothScrollArea(QScrollArea):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.target_val = 0
-        self.anim = QPropertyAnimation(self.verticalScrollBar(), b"value")
-        self.anim.setEasingCurve(QEasingCurve.OutCubic)
-        self.anim.setDuration(400)
-
-    def wheelEvent(self, event):
-        if not event.pixelDelta().isNull():
-            super().wheelEvent(event)
-            self.target_val = self.verticalScrollBar().value()
-            return
-        
-        bar = self.verticalScrollBar()
-        if self.anim.state() != QPropertyAnimation.Running:
-            self.target_val = bar.value()
-            
-        step = event.angleDelta().y()
-        self.target_val = max(bar.minimum(), min(bar.maximum(), self.target_val - step))
-        
-        self.anim.setEndValue(self.target_val)
-        self.anim.start()
-
-# 2. 글래스모피즘 스타일 프레임들
-# 2.1. [수정] 통합 유리판 대시보드 및 배너/메뉴용
-class GlassFrame(QFrame):
-    def __init__(self, radius=16, parent=None):
-        super().__init__(parent)
-        # QFrame 대신 GlassFrame으로 셀렉터 변경
-        self.setStyleSheet(f"""
-            GlassFrame {{
-                background-color: rgba(255, 255, 255, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.8);
-                border-radius: {radius}px;
-            }}
-        """)
-
-# 2.2. [신규] 통합 대시보드 내부의 개별 정보 셀 (배경/테두리 없음, 투명함)
-class IndicatorInfoCell(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        # 배경과 테두리를 명확히 초기화
-        self.setStyleSheet("IndicatorInfoCell { background: transparent; border: none; border-radius: 0px; }")
-
-# 3. 메뉴 리스트의 개별 아이템 (유지 - 클릭 유도를 위해 입체감 유지)
-class MenuListItem(GlassFrame):
-    clicked = Signal(str)
-
-    def __init__(self, icon, title, subtitle):
-        super().__init__(radius=16)
-        self.setFixedHeight(72)
-        self.setCursor(QCursor(Qt.PointingHandCursor))
-        
-        layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
-        layout.setSpacing(16)
-        
-        self.icon_label = QLabel(icon)
-        self.icon_label.setFont(QFont("Apple Color Emoji", 24))
-        self.icon_label.setFixedSize(40, 40)
-        self.icon_label.setAlignment(Qt.AlignCenter)
-        self.icon_label.setStyleSheet("background: transparent; border: none;")
-        
-        text_layout = QVBoxLayout()
-        text_layout.setSpacing(2)
-        text_layout.setAlignment(Qt.AlignVCenter)
-        
-        self.title_label = QLabel(title)
-        self.title_label.setStyleSheet("color: #1A1A1A; font-size: 15px; font-weight: bold; background: transparent; border: none;")
-        
-        self.subtitle_label = QLabel(subtitle)
-        self.subtitle_label.setStyleSheet("color: #4A5568; font-size: 12px; background: transparent; border: none;")
-        
-        text_layout.addWidget(self.title_label)
-        text_layout.addWidget(self.subtitle_label)
-        
-        layout.addWidget(self.icon_label)
-        layout.addLayout(text_layout)
-        layout.addStretch()
-
-    def enterEvent(self, event):
-        self.setStyleSheet("""
-            QFrame {
-                background-color: rgba(255, 255, 255, 0.7);
-                border: 1px solid rgba(255, 255, 255, 0.9);
-                border-radius: 16px;
-            }
-        """)
-        super().enterEvent(event)
-
-    def leaveEvent(self, event):
-        self.setStyleSheet("""
-            QFrame {
-                background-color: rgba(255, 255, 255, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.8);
-                border-radius: 16px;
-            }
-        """)
-        super().leaveEvent(event)
-    
-# ★ 마우스 클릭 이벤트 오버라이드
-    def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton:
-            self.clicked.emit(self.title_label.text()) # 클릭된 메뉴의 타이틀을 밖으로 쏨
-        super().mousePressEvent(event)
-
-# 4. 홈 화면 메인 윈도우
+# 4.1 메인 홈 인터페이스 레이아웃 관리
 class HomeView(QWidget):
     chat_requested = Signal()
     serve_requested = Signal()
@@ -141,7 +30,6 @@ class HomeView(QWidget):
         self.main_layout.setSpacing(0)
         self.main_layout.addSpacing(21) 
 
-        # 4.1. 커스텀 스크롤 영역
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
@@ -182,9 +70,7 @@ class HomeView(QWidget):
         self.scroll_layout.setSpacing(20) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
 
-        # ==========================================
-        # 1행: 최상단 배너
-        # ==========================================
+        # 4.2 사용자 환영 문구 및 배너 영역
         self.banner = GlassFrame(radius=16)
         self.banner.setFixedHeight(80)
         banner_layout = QHBoxLayout(self.banner)
@@ -209,9 +95,7 @@ class HomeView(QWidget):
         
         self.scroll_layout.addWidget(self.banner)
 
-        # ==========================================
-        # 2행: 통합된 유리 대시보드 (수정본)
-        # ==========================================
+        # 4.3 서버 상태 및 시스템 정보 대시보드
         self.indicator_dashboard = GlassFrame(radius=20)
         self.indicator_dashboard.setMinimumHeight(220)
 
@@ -242,33 +126,28 @@ class HomeView(QWidget):
             cell.setStyleSheet(f"IndicatorInfoCell {{ background: transparent; {border_style} }}")
             
             cell_layout = QVBoxLayout(cell)
-            # 상하단 여백을 조금 더 주어서 수직 중앙 밸런스를 맞춤
             cell_layout.setContentsMargins(0, 10, 0, 10) 
             cell_layout.setAlignment(Qt.AlignCenter)
             cell_layout.setSpacing(4)
             
-            # 1. 이모지 라벨
             icon_label = QLabel(icon)
             icon_font = QFont("Apple Color Emoji", 19)
             icon_label.setFont(icon_font)
             icon_label.setFixedHeight(28) 
-            icon_label.setAlignment(Qt.AlignCenter) # 중앙 정렬 추가
+            icon_label.setAlignment(Qt.AlignCenter)
             icon_label.setStyleSheet("background: transparent; border: none;")
             
-            # 2. 수치 데이터 (예: Running, 14.2 GB)
             val_label = QLabel(value)
             val_label.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 14px; background: transparent; border: none;")
-            val_label.setAlignment(Qt.AlignCenter) # 중앙 정렬 추가
+            val_label.setAlignment(Qt.AlignCenter)
             
-            # ★ [신규 추가] 타이틀이 "Server"일 경우, 나중에 상태를 업데이트하기 위해 변수에 저장
             if title == "Server":
                 self.server_icon_label = icon_label
                 self.server_status_label = val_label
             
-            # 3. 설명 텍스트 (예: Server, Memory)
             title_label = QLabel(title)
             title_label.setStyleSheet("color: #666666; font-size: 11px; background: transparent; border: none;")
-            title_label.setAlignment(Qt.AlignCenter) # 중앙 정렬 추가
+            title_label.setAlignment(Qt.AlignCenter)
             
             cell_layout.addWidget(icon_label)
             cell_layout.addWidget(val_label)
@@ -278,9 +157,7 @@ class HomeView(QWidget):
         
         self.scroll_layout.addWidget(self.indicator_dashboard)
         
-        # ==========================================
-        # 3행~: 메뉴 리스트 영역
-        # ==========================================
+        # 4.4 주요 기능 접근 메뉴 리스트
         self.menu_layout = QVBoxLayout()
         self.menu_layout.setSpacing(12)
         
@@ -320,9 +197,8 @@ class HomeView(QWidget):
         self.scrollbar_anim.setEndValue(0.0)
         self.scrollbar_anim.start()
 
-    # [신규] 서버 상태에 따라 대시보드 UI를 갱신하는 함수
+    # 4.5 서버 상태에 따른 대시보드 UI 실시간 업데이트
     def update_server_status(self, is_active):
-        # UI 객체가 아직 생성되지 않았을 때를 대비한 안전 장치
         if not hasattr(self, 'server_status_label'): 
             return
             
@@ -332,6 +208,5 @@ class HomeView(QWidget):
             self.server_icon_label.setText("🟢")
         else:
             self.server_status_label.setText("Stopped")
-            # 꺼져있을 때는 직관적으로 알 수 있게 빨간색 텍스트로 변경
             self.server_status_label.setStyleSheet("color: #FF3B30; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("🔴")

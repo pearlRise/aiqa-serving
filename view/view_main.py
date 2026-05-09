@@ -13,23 +13,22 @@ from ollama.chat_manager import ChatController
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxLayout, QPushButton
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint, QEvent, QTimer
 
-from view.view_home_interface import HomeView
-from view.view_chat_interface import ChatView
+from view.view_interface_main import HomeView
+from view.view_interface_chat import ChatView
 
+# 1.1 메인 컨트롤러 및 윈도우 관리 클래스
 class MainController(QMainWindow):
     def __init__(self):
         super().__init__()
-        
-        # 1. 매니저 인스턴스 생성
-        self.ollama = ServerManager()
 
-        # 2. 윈도우 기본 설정
+        # 1.2 서버 매니저 인스턴스 생성 및 윈도우 속성 설정
+        self.ollama = ServerManager()
         self.setMinimumSize(305, 655)
         self.resize(305, 655)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
         self.setAttribute(Qt.WA_TranslucentBackground)
 
-        # 3. 중앙 컨테이너 및 뷰(View) 인스턴스 먼저 생성 ★ (이게 위로 올라와야 함)
+        # 1.3 중앙 컨테이너 및 내부 뷰(홈, 채팅) 인스턴스 생성
         self.container = QWidget(self)
         self.setCentralWidget(self.container)
 
@@ -37,18 +36,25 @@ class MainController(QMainWindow):
         self.home_view.setParent(self.container)
 
         self.chat_view = ChatView()
-        self.chat_logic = ChatController(self.chat_view, self.ollama)
+        # 1.3 컨트롤러 생성 시 뷰를 주입하지 않음 (의존성 분리)
+        self.chat_logic = ChatController(self.ollama)
         self.chat_view.setParent(self.container)
 
-        # 4. 이제 객체가 존재하므로 시그널들을 연결 ★
+        # 1.4 프론트(View)와 백(Controller)의 상호작용 연결 (Internal API)
+        # 사용자가 전송 버튼 누름 -> 백엔드 로직 실행
+        self.chat_view.send_btn.clicked.connect(lambda: self.chat_logic.process_message(self.chat_view.input_field.toPlainText()))
+        # 백엔드 답변 도착 -> 프론트엔드에서 말풍선 추가
+        self.chat_logic.answer_received.connect(lambda msg: self.chat_view.add_chat_bubble(msg, is_me=False, sender_name="Gemma"))
+
+        # 1.4 홈 뷰 시그널(서버 구동, 채팅 전환) 연결
         self.home_view.serve_requested.connect(self.toggle_ollama_serve)
         self.home_view.chat_requested.connect(self.slide_to_chat)
 
-        # 5. 상태 모니터링 타이머 시작
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.check_ollama_status)
         self.status_timer.start(2000)
 
+        # 2.1 다이내믹 아일랜드 UI 구성 및 레이아웃 설정
         self.island = QFrame(self)
         self.island.setFixedSize(120, 26)
         self.island.setStyleSheet("background-color: black; border-radius: 13px;")
@@ -79,15 +85,14 @@ class MainController(QMainWindow):
         self.island_layout.addWidget(self.back_btn, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         self.island_layout.addStretch()
 
-        # 상태 및 리사이즈 제어용 변수
         self.old_pos = None
         self.is_chat_active = False
         self.resizing = False
         self.resize_margin = 10
 
         self.chat_view.scroll.viewport().installEventFilter(self)
-        
-    # [신규] 창 크기가 변할 때 내부 뷰와 아일랜드 위치를 재조정하는 사령탑
+
+    # 3.1 창 크기 변경에 따른 내부 뷰 및 아일랜드 위치 재조정
     def resizeEvent(self, event):
         super().resizeEvent(event)
         w, h = self.width(), self.height()
@@ -96,7 +101,6 @@ class MainController(QMainWindow):
         self.home_view.resize(w, h)
         self.chat_view.resize(w, h)
 
-        # 창 크기가 변해도 현재 보고 있는 화면에 맞춰 x좌표를 계속 보정해줌
         if self.is_chat_active:
             self.home_view.move(-w, 0)
             self.chat_view.move(0, 0)
@@ -106,7 +110,7 @@ class MainController(QMainWindow):
 
         self.island.move(int((w - self.island.width()) / 2), 8)
 
-    # [수정] 고정값 305 대신 self.width()를 활용한 유동적 슬라이딩
+    # 4.1 홈에서 채팅 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_chat(self):
         if self.is_chat_active: return
         self.is_chat_active = True
@@ -129,6 +133,7 @@ class MainController(QMainWindow):
         self.anim_group.addAnimation(anim_chat)
         self.anim_group.start()
 
+    # 4.2 채팅에서 홈 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_home(self):
         if not self.is_chat_active: return
         self.is_chat_active = False
@@ -151,18 +156,16 @@ class MainController(QMainWindow):
         self.anim_group.addAnimation(anim_chat)
         self.anim_group.start()
 
-    # 7. 제스처 및 드래그 이벤트
+    # 5.1 마우스 휠 제스처를 이용한 화면 전환 이벤트 필터링
     def eventFilter(self, obj, event):
-        # 감지된 객체가 chat_view의 뷰포트인지 정확히 확인
         if obj == self.chat_view.scroll.viewport() and event.type() == QEvent.Wheel:
-            # 채팅창이 열려있을 때, 우측 스와이프(x축 이동량) 감지
             if self.is_chat_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
                 self.slide_to_home()
-                return True # 이벤트 소모 (스크롤이 튀는 현상 방지)
+                return True
                 
         return super().eventFilter(obj, event)
 
-    # [수정] 모서리 인식 및 리사이즈 로직 부활
+    # 6.1 창 이동 및 리사이즈를 위한 마우스 클릭 지점 감지
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
             pos = event.position().toPoint()
@@ -172,12 +175,12 @@ class MainController(QMainWindow):
             else:
                 self.old_pos = event.globalPosition().toPoint()
 
+    # 6.2 드래그 거리에 따른 창 크기 조절 및 위치 이동 처리
     def mouseMoveEvent(self, event):
         pos = event.position().toPoint()
         is_right = pos.x() > self.width() - self.resize_margin
         is_bottom = pos.y() > self.height() - self.resize_margin
-        
-        # 커서 아이콘 변경
+
         if is_right and is_bottom: self.setCursor(Qt.SizeFDiagCursor)
         elif is_right: self.setCursor(Qt.SizeHorCursor)
         elif is_bottom: self.setCursor(Qt.SizeVerCursor)
@@ -194,22 +197,19 @@ class MainController(QMainWindow):
         self.resizing = False
         self.old_pos = None
 
+    # 7.1 Ollama 서버 구동 및 중지 제어
     def toggle_ollama_serve(self):
         if not self.ollama.is_running():
             success, msg = self.ollama.start_server()
-            # 다이내믹 아일랜드나 로그 창에 msg 출력 로직 추가 가능
         else:
             self.ollama.stop_server()
 
-    # [상태 동기화] 타이머에 의해 주기적으로 실행
+    # 7.2 서버 상태 확인 및 홈 뷰/아일랜드 UI 동기화
     def check_ollama_status(self):
         is_active = self.ollama.is_running()
-        
-        # 홈 뷰의 대시보드 데이터를 실시간으로 업데이트
-        # (HomeView에 status 업데이트 메서드를 미리 만들어두면 편해)
+
         self.home_view.update_server_status(is_active)
-        
-        # 다이내믹 아일랜드에 작은 점 하나 찍어주는 연출도 좋겠지?
+
         if is_active:
             self.island.setStyleSheet("background-color: black; border: 1px solid #00FF00; border-radius: 13px;")
         else:
