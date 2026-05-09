@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QFrame, QGraphicsOpacityEffect
 )
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
 from view.view_components import ChatItem, CustomInput
 
 # 4.1 채팅 인터페이스 전체 레이아웃 및 스크롤 영역 관리
@@ -138,6 +138,11 @@ class ChatView(QWidget):
             new_height = 40
         else:
             new_height = max(40, min(120, int(doc_height) + 22))
+            
+        # 1.3 입력창이 최대 높이(120px)에 도달했을 때만 스크롤바 노출
+        self.input_field.setVerticalScrollBarPolicy(
+            Qt.ScrollBarAsNeeded if new_height >= 120 else Qt.ScrollBarAlwaysOff
+        )
             
         if self.input_field.height() != new_height:
             self.input_field.setFixedHeight(new_height)

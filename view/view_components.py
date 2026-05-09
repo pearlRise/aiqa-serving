@@ -165,6 +165,8 @@ class CustomInput(QTextEdit):
         super().__init__(parent)
         self.setFixedHeight(40); self.setPlaceholderText("Message...")
         self.setFrameShape(QFrame.NoFrame)
+        # 1.1 기본적으로 스크롤바를 숨김 (최대 높이 도달 시에만 켬)
+        self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         font = self.font(); font.setPixelSize(14); self.setFont(font)
         self.setStyleSheet("""
             QTextEdit { 
@@ -173,6 +175,13 @@ class CustomInput(QTextEdit):
             }
             QScrollBar:vertical { border: none; background: transparent; width: 4px; }
             QScrollBar::handle:vertical { background: rgba(0, 0, 0, 0.1); border-radius: 2px; }
+            /* 1.2 화살표 버튼(흔적) 제거 */
+            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+                height: 0px; background: none;
+            }
+            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+                background: none;
+            }
         """)
     def keyPressEvent(self, event):
         if event.key() in (Qt.Key_Return, Qt.Key_Enter) and not (event.modifiers() & Qt.ShiftModifier):
