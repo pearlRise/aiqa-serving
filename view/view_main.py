@@ -1,5 +1,7 @@
 import sys
 import os
+import atexit
+import signal
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, ".."))
@@ -14,7 +16,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QFrame, QHBoxL
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint, QEvent, QTimer
 
 from view.view_interface_main import HomeView
-from view.view_interface_chat import ChatView
+from view.view_chat_interface import ChatView
 
 # 1.1 메인 컨트롤러 및 윈도우 관리 클래스
 class MainController(QMainWindow):
@@ -23,6 +25,10 @@ class MainController(QMainWindow):
 
         # 1.2 서버 매니저 인스턴스 생성 및 윈도우 속성 설정
         self.ollama = ServerManager()
+
+        # 1.0 프로그램 종료 시 서버 자동 종료 등록 (인스턴스 생성 후 등록 필수)
+        atexit.register(self.ollama.stop_server)
+
         self.setMinimumSize(305, 655)
         self.resize(305, 655)
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint)
@@ -217,6 +223,8 @@ class MainController(QMainWindow):
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
+    # 터미널에서 Ctrl+C 입력 시 Python의 atexit이 동작하도록 시그널 설정
+    signal.signal(signal.SIGINT, signal.SIG_DFL)
     window = MainController()
     window.show()
     sys.exit(app.exec())

@@ -11,10 +11,10 @@ class ServerManager:
 
     # 1.2 Ollama 서버 프로세스 백그라운드 실행
     def start_server(self):
-        if self.is_running():
-            return True, "is_running: True"
-        
         try:
+            if self.is_running():
+                return True, "Ollama server is already running."
+
             self.process = subprocess.Popen(
                 ["ollama", "serve"],
                 stdout=subprocess.DEVNULL,
@@ -36,8 +36,23 @@ class ServerManager:
     # 3.1 실행 중인 서버 프로세스 강제 종료
     def stop_server(self):
         if self.process:
-            os.killpg(os.getpgid(self.process.pid), signal.SIGTERM)
-            self.process = None
+            try:
+                # 프로세스 그룹 전체에 종료 신호 전송
+                pgid = os.getpgid(self.process.pid)
+                os.killpg(pgid, signal.SIGTERM)
+                # 프로세스가 완전히 종료될 때까지 최대 2초 대기
+                try:
+                    self.process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    os.killpg(pgid, signal.SIGKILL)
+            except ProcessLookupError:
+                # 이미 프로세스가 종료된 경우 무시
+                pass
+            except Exception as e:
+                print(f"Error while stopping server: {e}")
+            finally:
+                self.process = None
+            
             return True
         return False
     
