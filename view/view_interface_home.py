@@ -7,6 +7,7 @@ from view.view_components import SmoothScrollArea, GlassFrame, IndicatorInfoCell
 class HomeView(QWidget):
     chat_requested = Signal()
     serve_requested = Signal()
+    selection_requested = Signal()
     def __init__(self):
         super().__init__()
         self.container = QWidget()
@@ -45,9 +46,9 @@ class HomeView(QWidget):
                 margin: 24px 0px 24px 0px; 
             }
             QScrollBar::handle:vertical {
-                background: rgba(0, 0, 0, 0.15); border-radius: 4px; min-height: 30px;
+                background: rgba(255, 255, 255, 0.25); border-radius: 4px; min-height: 30px;
             }
-            QScrollBar::handle:vertical:hover { background: rgba(0, 0, 0, 0.3); }
+            QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.4); }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
                 height: 0px; background: none;
@@ -187,6 +188,12 @@ class HomeView(QWidget):
             if title == "Ollama Chat":
                 item.clicked.connect(lambda _: self.chat_requested.emit())
 
+            if title == "Choose Model":
+                self.choose_model_item = item
+                self.choose_model_effect = QGraphicsOpacityEffect()
+                self.choose_model_item.setGraphicsEffect(self.choose_model_effect)
+                item.clicked.connect(lambda _: self.selection_requested.emit())
+
             self.menu_layout.addWidget(item)
             
         self.scroll_layout.addLayout(self.menu_layout)
@@ -225,13 +232,13 @@ class HomeView(QWidget):
         super().resizeEvent(event)
         island_x = (self.width() - 120) // 2
         if hasattr(self, 'island'):
-            self.island.move(island_x, 10)
+            self.island.move(island_x, 11)
         if hasattr(self, 'exclaim_btn'):
-            self.exclaim_btn.move(island_x - 31, 10)
+            self.exclaim_btn.move(island_x - 31, 11)
         if hasattr(self, 'question_btn'):
-            self.question_btn.move(island_x + 125, 10)
+            self.question_btn.move(island_x + 125, 11)
         if hasattr(self, 'close_btn'):
-            self.close_btn.move(island_x + 156, 10)
+            self.close_btn.move(island_x + 156, 11)
 
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:
@@ -253,9 +260,14 @@ class HomeView(QWidget):
             self.server_icon_label.setText("🟢")
         elif status == "stopped":
             self.server_status_label.setText("Stopped")
-            self.server_status_label.setStyleSheet("color: #FF3B30; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            self.server_status_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("🔴")
         elif status == "loading":
             self.server_status_label.setText("Loading")
             self.server_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("⌛️")
+
+        if hasattr(self, 'choose_model_item'):
+            is_running = (status == "running")
+            self.choose_model_item.setEnabled(is_running)
+            self.choose_model_effect.setOpacity(1.0 if is_running else 0.4)

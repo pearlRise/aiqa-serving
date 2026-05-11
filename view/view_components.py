@@ -249,7 +249,7 @@ class CustomInput(QTextEdit):
                 border-radius: 22px; padding: 12px 12px; border: 1px solid #BDC3C7;
             }
             QScrollBar:vertical { border: none; background: transparent; width: 4px; }
-            QScrollBar::handle:vertical { background: rgba(0, 0, 0, 0.1); border-radius: 2px; }
+            QScrollBar::handle:vertical { background: rgba(0, 0, 0, 0.3); border-radius: 2px; }
             /* 1.2 화살표 버튼(흔적) 제거 */
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
                 height: 0px; background: none;

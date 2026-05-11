@@ -53,9 +53,9 @@ class ChatView(QWidget):
                 border: none; background: transparent; width: 8px; margin: 0px;
             }
             QScrollBar::handle:vertical {
-                background: rgba(0, 0, 0, 0.15); border-radius: 4px; min-height: 30px;
+                background: rgba(255, 255, 255, 0.25); border-radius: 4px; min-height: 30px;
             }
-            QScrollBar::handle:vertical:hover { background: rgba(0, 0, 0, 0.3); }
+            QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.4); }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
                 height: 0px; background: none;
@@ -104,9 +104,9 @@ class ChatView(QWidget):
                 border: none; background: transparent; width: 6px; margin: 4px 0px 4px 0px;
             }
             QScrollBar::handle:vertical {
-                background: rgba(0, 0, 0, 0.15); border-radius: 3px; min-height: 20px;
+                background: rgba(0, 0, 0, 0.3); border-radius: 3px; min-height: 20px;
             }
-            QScrollBar::handle:vertical:hover { background: rgba(0, 0, 0, 0.3); }
+            QScrollBar::handle:vertical:hover { background: rgba(0, 0, 0, 0.5); }
             QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
             QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
                 height: 0px; background: none;
@@ -280,13 +280,13 @@ class ChatView(QWidget):
         island_x = (self.width() - 120) // 2
         
         if hasattr(self, 'island'):
-            self.island.move(island_x, 10)
+            self.island.move(island_x, 11)
         if hasattr(self, 'back_btn'):
-            self.back_btn.move(island_x - 31, 10)
+            self.back_btn.move(island_x - 31, 11)
         if hasattr(self, 'menu_btn'):
-            self.menu_btn.move(island_x + 125, 10)
+            self.menu_btn.move(island_x + 125, 11)
         if hasattr(self, 'close_btn'):
-            self.close_btn.move(island_x + 156, 10)
+            self.close_btn.move(island_x + 156, 11)
             
         if hasattr(self, 'dropdown_menu') and not self.dropdown_menu.isHidden():
             self.dropdown_menu.move(self.width() - 196, 50)

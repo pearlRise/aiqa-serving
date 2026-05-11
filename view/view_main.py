@@ -17,6 +17,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimat
 
 from view.view_interface_home import HomeView
 from view.view_interface_chat import ChatView
+from view.view_interface_selection import SelectionView
 
 # 1.1 메인 컨트롤러 및 윈도우 관리 클래스
 class MainController(QMainWindow):
@@ -45,6 +46,9 @@ class MainController(QMainWindow):
         # 1.3 컨트롤러 생성 시 뷰를 주입하지 않음 (의존성 분리)
         self.chat_logic = ChatController(self.ollama)
         self.chat_view.setParent(self.container)
+        
+        self.selection_view = SelectionView()
+        self.selection_view.setParent(self.container)
 
         # 1.4 프론트(View)와 백(Controller)의 상호작용 연결 (Internal API)
         # 사용자가 전송 버튼/엔터키 누름 -> 백엔드 로직 실행 및 입력창 비우기
@@ -59,6 +63,8 @@ class MainController(QMainWindow):
         # 1.4 홈 뷰 시그널(서버 구동, 채팅 전환) 연결
         self.home_view.serve_requested.connect(self.toggle_ollama_serve)
         self.home_view.chat_requested.connect(self.slide_to_chat)
+        self.home_view.selection_requested.connect(self.slide_to_selection)
+        self.selection_view.back_requested.connect(self.slide_to_home)
 
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.check_ollama_status)
@@ -67,13 +73,14 @@ class MainController(QMainWindow):
         self.old_pos = None
         self.logical_pos = None
         self.is_chat_active = False
+        self.is_selection_active = False
         self.resizing = False
         self.resize_margin = 10
         self.is_server_starting = False
         self.is_server_stopping = False
 
         self.chat_view.scroll.viewport().installEventFilter(self)
-        self.home_view.scroll.viewport().installEventFilter(self)
+        self.selection_view.scroll.viewport().installEventFilter(self)
 
         # 앱 실행 시 초기 서버 상태 확인 (UI 렌더링 직후)
         QTimer.singleShot(100, self.check_ollama_status)
@@ -94,13 +101,20 @@ class MainController(QMainWindow):
         self.container.resize(w, h)
         self.home_view.resize(w, h)
         self.chat_view.resize(w, h)
+        self.selection_view.resize(w, h)
 
         if self.is_chat_active:
             self.home_view.move(-w, 0)
             self.chat_view.move(0, 0)
+            self.selection_view.move(w, 0)
+        elif self.is_selection_active:
+            self.home_view.move(-w, 0)
+            self.selection_view.move(0, 0)
+            self.chat_view.move(w, 0)
         else:
             self.home_view.move(0, 0)
             self.chat_view.move(w, 0)
+            self.selection_view.move(w, 0)
 
     # 4.1 홈에서 채팅 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_chat(self):
@@ -126,9 +140,8 @@ class MainController(QMainWindow):
 
     # 4.2 채팅에서 홈 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_home(self):
-        if not self.is_chat_active: return
-        self.is_chat_active = False
-        
+        if not (self.is_chat_active or self.is_selection_active): return
+            
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         
@@ -136,27 +149,57 @@ class MainController(QMainWindow):
         anim_home.setEndValue(QPoint(0, 0))
         anim_home.setEasingCurve(QEasingCurve.InOutQuart)
         anim_home.setDuration(450)
+        self.anim_group.addAnimation(anim_home)
 
-        anim_chat = QPropertyAnimation(self.chat_view, b"pos")
-        anim_chat.setEndValue(QPoint(w, 0))
-        anim_chat.setEasingCurve(QEasingCurve.InOutQuart)
-        anim_chat.setDuration(450)
+        if self.is_chat_active:
+            self.is_chat_active = False
+            anim_chat = QPropertyAnimation(self.chat_view, b"pos")
+            anim_chat.setEndValue(QPoint(w, 0))
+            anim_chat.setEasingCurve(QEasingCurve.InOutQuart)
+            anim_chat.setDuration(450)
+            self.anim_group.addAnimation(anim_chat)
+            
+        if self.is_selection_active:
+            self.is_selection_active = False
+            anim_sel = QPropertyAnimation(self.selection_view, b"pos")
+            anim_sel.setEndValue(QPoint(w, 0))
+            anim_sel.setEasingCurve(QEasingCurve.InOutQuart)
+            anim_sel.setDuration(450)
+            self.anim_group.addAnimation(anim_sel)
+
+        self.anim_group.start()
+
+    def slide_to_selection(self):
+        if not self.ollama.is_running(): return
+        if self.is_chat_active or self.is_selection_active: return
+        self.is_selection_active = True
+        
+        self.anim_group = QParallelAnimationGroup()
+        w = self.width()
+        
+        anim_home = QPropertyAnimation(self.home_view, b"pos")
+        anim_home.setEndValue(QPoint(-w, 0))
+        anim_home.setEasingCurve(QEasingCurve.InOutQuart)
+        anim_home.setDuration(450)
+
+        anim_sel = QPropertyAnimation(self.selection_view, b"pos")
+        anim_sel.setEndValue(QPoint(0, 0))
+        anim_sel.setEasingCurve(QEasingCurve.InOutQuart)
+        anim_sel.setDuration(450)
 
         self.anim_group.addAnimation(anim_home)
-        self.anim_group.addAnimation(anim_chat)
+        self.anim_group.addAnimation(anim_sel)
         self.anim_group.start()
 
     # 5.1 마우스 휠 제스처를 이용한 화면 전환 이벤트 필터링
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Wheel:
-            if obj == self.chat_view.scroll.viewport():
-                if self.is_chat_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
-                    self.slide_to_home()
-                    return True
-            elif obj == self.home_view.scroll.viewport():
-                if not self.is_chat_active and event.angleDelta().x() < -40 and abs(event.angleDelta().y()) < 20:
-                    self.slide_to_chat()
-                    return True
+            if obj == self.chat_view.scroll.viewport() and self.is_chat_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
+                self.slide_to_home()
+                return True
+            elif hasattr(self, 'selection_view') and obj == self.selection_view.scroll.viewport() and self.is_selection_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
+                self.slide_to_home()
+                return True
                 
         return super().eventFilter(obj, event)
 
