@@ -36,6 +36,10 @@ class ChatController(QObject):
         text = text.strip()
         if not text:
             return
+            
+        # AI가 이미 이전 답변을 생성(스트리밍) 중이라면 중복 실행 방지
+        if self.worker and self.worker.isRunning():
+            return
 
         # 2.2 생각 중 상태 알림 (프론트에서 {...} 버블 생성 유도)
         self.thinking_started.emit()

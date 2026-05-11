@@ -50,7 +50,11 @@ class ChatView(QWidget):
         self.scroll_timer = QTimer(self)
         self.scroll_timer.setSingleShot(True)
         self.scroll_timer.timeout.connect(self.hide_scrollbar)
-        self.scrollbar_anim = None
+        
+        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
+        self.scrollbar_anim.setDuration(300)
+        self.scrollbar_anim.setStartValue(1.0)
+        self.scrollbar_anim.setEndValue(0.0)
         
         self.scroll.verticalScrollBar().valueChanged.connect(self.show_scrollbar)
         self.scroll.verticalScrollBar().rangeChanged.connect(self.show_scrollbar)
@@ -102,14 +106,12 @@ class ChatView(QWidget):
 
     # 4.2 스크롤바 페이드 인/아웃 제어 로직
     def show_scrollbar(self, *args):
+        if self.scrollbar_anim.state() == QPropertyAnimation.Running:
+            self.scrollbar_anim.stop()
         self.scroll_effect.setOpacity(1.0)
         self.scroll_timer.start(1500)
 
     def hide_scrollbar(self):
-        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
-        self.scrollbar_anim.setDuration(300)
-        self.scrollbar_anim.setStartValue(1.0)
-        self.scrollbar_anim.setEndValue(0.0)
         self.scrollbar_anim.start()
 
     # 4.3 새로운 채팅 말풍선 추가 및 연속 메시지 그룹화
@@ -173,10 +175,9 @@ class ChatView(QWidget):
             
             for i in range(self.chat_layout.count()):
                 item = self.chat_layout.itemAt(i)
-                if item and item.widget():
-                    widget = item.widget()
-                    if isinstance(widget, ChatItem):
-                        widget.needs_width_update = True
+                widget = item.widget() if item else None
+                if isinstance(widget, ChatItem):
+                    widget.needs_width_update = True
             
             # 디바운싱: 드래그가 멈추고 100ms 후에 한 번만 재계산
             self.resize_timer.start(100)
@@ -192,10 +193,9 @@ class ChatView(QWidget):
 
         for i in range(self.chat_layout.count()):
             item = self.chat_layout.itemAt(i)
-            if item and item.widget():
-                widget = item.widget()
-                if isinstance(widget, ChatItem) and widget.needs_width_update:
-                    widget_y = widget.pos().y()
-                    if visible_top <= widget_y <= visible_bottom:
-                        widget.update_width(self.width())
-                        widget.needs_width_update = False
+            widget = item.widget() if item else None
+            if isinstance(widget, ChatItem) and widget.needs_width_update:
+                widget_y = widget.pos().y()
+                if visible_top <= widget_y <= visible_bottom:
+                    widget.update_width(self.width())
+                    widget.needs_width_update = False

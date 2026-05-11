@@ -95,11 +95,17 @@ class MainController(QMainWindow):
         self.island_layout.addStretch()
 
         self.old_pos = None
+        self.logical_pos = None
         self.is_chat_active = False
         self.resizing = False
         self.resize_margin = 10
+        self.is_server_starting = False
+        self.is_server_stopping = False
 
         self.chat_view.scroll.viewport().installEventFilter(self)
+
+        # 앱 실행 시 초기 서버 상태 확인 (UI 렌더링 직후)
+        QTimer.singleShot(100, self.check_ollama_status)
 
     # 1.6 메시지 전송 통합 핸들러
     def handle_send_message(self):
@@ -190,6 +196,7 @@ class MainController(QMainWindow):
                 self.resizing = True
             else:
                 self.old_pos = event.globalPosition().toPoint()
+            self.logical_pos = self.pos()
 
     # 6.2 드래그 거리에 따른 창 크기 조절 및 위치 이동 처리
     def mouseMoveEvent(self, event):
@@ -206,12 +213,29 @@ class MainController(QMainWindow):
             self.resize(max(self.minimumWidth(), pos.x()), max(self.minimumHeight(), pos.y()))
         elif self.old_pos:
             delta = event.globalPosition().toPoint() - self.old_pos
-            self.move(self.pos() + delta)
+            self.logical_pos += delta
+            
+            new_pos = QPoint(self.logical_pos)
+            screen_rect = self.screen().availableGeometry()
+            snap_dist = 20
+            
+            if abs(new_pos.x() - screen_rect.left()) < snap_dist:
+                new_pos.setX(screen_rect.left())
+            elif abs(new_pos.x() + self.width() - screen_rect.right()) < snap_dist:
+                new_pos.setX(screen_rect.right() - self.width() + 1)
+                
+            if abs(new_pos.y() - screen_rect.top()) < snap_dist:
+                new_pos.setY(screen_rect.top())
+            elif abs(new_pos.y() + self.height() - screen_rect.bottom()) < snap_dist:
+                new_pos.setY(screen_rect.bottom() - self.height() + 1)
+                
+            self.move(new_pos)
             self.old_pos = event.globalPosition().toPoint()
 
     def mouseReleaseEvent(self, event):
         self.resizing = False
         self.old_pos = None
+        self.logical_pos = None
         
     # 6.3 창 닫기 이벤트 시 안전한 서버 종료 처리
     def closeEvent(self, event):
@@ -221,20 +245,43 @@ class MainController(QMainWindow):
     # 7.1 Ollama 서버 구동 및 중지 제어
     def toggle_ollama_serve(self):
         if not self.ollama.is_running():
+            self.is_server_starting = True
+            self.is_server_stopping = False
+            self.update_server_ui("loading")
+            QApplication.processEvents()
             success, msg = self.ollama.start_server()
         else:
+            self.is_server_starting = False
+            self.is_server_stopping = True
+            self.update_server_ui("loading")
+            QApplication.processEvents()
             self.ollama.stop_server()
+            self.is_server_stopping = False
+            self.check_ollama_status()
 
     # 7.2 서버 상태 확인 및 홈 뷰/아일랜드 UI 동기화
     def check_ollama_status(self):
         is_active = self.ollama.is_running()
 
-        self.home_view.update_server_status(is_active)
-
         if is_active:
-            self.island.setStyleSheet("background-color: black; border: 1px solid #00FF00; border-radius: 13px;")
+            self.is_server_starting = False
+            if self.is_server_stopping:
+                self.update_server_ui("loading")
+            else:
+                self.update_server_ui("running")
         else:
-            self.island.setStyleSheet("background-color: black; border: 1px solid #FF0000; border-radius: 13px;")
+            if self.is_server_starting:
+                if self.ollama.process and self.ollama.process.poll() is not None:
+                    self.is_server_starting = False
+                    self.update_server_ui("stopped")
+                else:
+                    self.update_server_ui("loading")
+            else:
+                self.is_server_stopping = False
+                self.update_server_ui("stopped")
+
+    def update_server_ui(self, status):
+        self.home_view.update_server_status(status)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

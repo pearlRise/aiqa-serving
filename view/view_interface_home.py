@@ -57,7 +57,11 @@ class HomeView(QWidget):
         self.scroll_timer = QTimer(self)
         self.scroll_timer.setSingleShot(True)
         self.scroll_timer.timeout.connect(self.hide_scrollbar)
-        self.scrollbar_anim = None
+        
+        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
+        self.scrollbar_anim.setDuration(300)
+        self.scrollbar_anim.setStartValue(1.0)
+        self.scrollbar_anim.setEndValue(0.0)
         
         self.scroll.verticalScrollBar().valueChanged.connect(self.show_scrollbar)
         self.scroll.verticalScrollBar().rangeChanged.connect(self.show_scrollbar)
@@ -187,26 +191,28 @@ class HomeView(QWidget):
         self.main_layout.addWidget(self.scroll, 1)
 
     def show_scrollbar(self, *args):
+        if self.scrollbar_anim.state() == QPropertyAnimation.Running:
+            self.scrollbar_anim.stop()
         self.scroll_effect.setOpacity(1.0)
         self.scroll_timer.start(1500)
 
     def hide_scrollbar(self):
-        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
-        self.scrollbar_anim.setDuration(300)
-        self.scrollbar_anim.setStartValue(1.0)
-        self.scrollbar_anim.setEndValue(0.0)
         self.scrollbar_anim.start()
 
     # 4.5 서버 상태에 따른 대시보드 UI 실시간 업데이트
-    def update_server_status(self, is_active):
+    def update_server_status(self, status):
         if not hasattr(self, 'server_status_label'): 
             return
             
-        if is_active:
+        if status == "running":
             self.server_status_label.setText("Running")
             self.server_status_label.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("🟢")
-        else:
+        elif status == "stopped":
             self.server_status_label.setText("Stopped")
             self.server_status_label.setStyleSheet("color: #FF3B30; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("🔴")
+        elif status == "loading":
+            self.server_status_label.setText("Loading")
+            self.server_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            self.server_icon_label.setText("⌛️")

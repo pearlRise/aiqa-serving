@@ -67,12 +67,12 @@ class ServerManager:
                 "stream": True 
             }
             # stream=True 옵션으로 요청
-            response = requests.post(url, json=data, timeout=30, stream=True)
-            for line in response.iter_lines():
-                if line:
-                    chunk = json.loads(line.decode("utf-8"))
-                    yield chunk.get("response", "")
-                    if chunk.get("done"):
-                        break
+            with requests.post(url, json=data, timeout=30, stream=True) as response:
+                for line in response.iter_lines():
+                    if line:
+                        chunk = json.loads(line.decode("utf-8"))
+                        yield chunk.get("response", "")
+                        if chunk.get("done"):
+                            break
         except Exception as e:
             yield f"Connection Failed: {str(e)}"
