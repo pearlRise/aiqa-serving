@@ -73,6 +73,7 @@ class MainController(QMainWindow):
         self.is_server_stopping = False
 
         self.chat_view.scroll.viewport().installEventFilter(self)
+        self.home_view.scroll.viewport().installEventFilter(self)
 
         # 앱 실행 시 초기 서버 상태 확인 (UI 렌더링 직후)
         QTimer.singleShot(100, self.check_ollama_status)
@@ -147,10 +148,15 @@ class MainController(QMainWindow):
 
     # 5.1 마우스 휠 제스처를 이용한 화면 전환 이벤트 필터링
     def eventFilter(self, obj, event):
-        if obj == self.chat_view.scroll.viewport() and event.type() == QEvent.Wheel:
-            if self.is_chat_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
-                self.slide_to_home()
-                return True
+        if event.type() == QEvent.Wheel:
+            if obj == self.chat_view.scroll.viewport():
+                if self.is_chat_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
+                    self.slide_to_home()
+                    return True
+            elif obj == self.home_view.scroll.viewport():
+                if not self.is_chat_active and event.angleDelta().x() < -40 and abs(event.angleDelta().y()) < 20:
+                    self.slide_to_chat()
+                    return True
                 
         return super().eventFilter(obj, event)
 

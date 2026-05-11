@@ -2,10 +2,10 @@ import math
 from datetime import datetime
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, 
-    QScrollArea, QTextBrowser, QTextEdit
+    QScrollArea, QTextBrowser, QTextEdit, QPushButton
 )
-from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Signal
-from PySide6.QtGui import QFont, QCursor, QPainter, QPainterPath, QColor, QTextOption
+from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, Signal, QRectF
+from PySide6.QtGui import QFont, QCursor, QPainter, QPainterPath, QColor, QTextOption, QPen
 
 # 1.1 부드러운 스크롤 애니메이션 적용 영역
 class SmoothScrollArea(QScrollArea):
@@ -17,7 +17,10 @@ class SmoothScrollArea(QScrollArea):
         self.anim.setDuration(400)
 
     def wheelEvent(self, event):
-        if not event.pixelDelta().isNull():
+        delta_y = event.angleDelta().y()
+        
+        # 트랙패드나 고해상도 마우스 휠인 경우 네이티브 스크롤로 처리 (애니메이션 충돌 방지)
+        if not event.pixelDelta().isNull() or (delta_y != 0 and abs(delta_y) % 120 != 0):
             super().wheelEvent(event)
             self.target_val = self.verticalScrollBar().value()
             return
@@ -35,8 +38,8 @@ class GlassFrame(QFrame):
         super().__init__(parent)
         self.setStyleSheet(f"""
             GlassFrame {{
-                background-color: rgba(255, 255, 255, 0.5);
-                border: 1px solid rgba(255, 255, 255, 0.8);
+                background-color: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: {radius}px;
             }}
         """)
@@ -56,9 +59,9 @@ class MenuListItem(GlassFrame):
         self.setCursor(QCursor(Qt.PointingHandCursor))
         
         self.setObjectName("MenuItem")
-        self.default_bg = "rgba(255, 255, 255, 0.5)"
-        self.hover_bg = "rgba(255, 255, 255, 0.8)"
-        self.pressed_bg = "rgba(200, 210, 225, 0.8)"
+        self.default_bg = "rgba(255, 255, 255, 0.05)"
+        self.hover_bg = "rgba(255, 255, 255, 0.12)"
+        self.pressed_bg = "rgba(255, 255, 255, 0.2)"
         self._apply_bg(self.default_bg)
 
         layout = QHBoxLayout(self)
@@ -73,9 +76,9 @@ class MenuListItem(GlassFrame):
         text_layout.setSpacing(2)
         text_layout.setAlignment(Qt.AlignVCenter)
         self.title_label = QLabel(title)
-        self.title_label.setStyleSheet("color: #1A1A1A; font-size: 15px; font-weight: bold; background: transparent; border: none;")
+        self.title_label.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: bold; background: transparent; border: none;")
         self.subtitle_label = QLabel(subtitle)
-        self.subtitle_label.setStyleSheet("color: #4A5568; font-size: 12px; background: transparent; border: none;")
+        self.subtitle_label.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none;")
         text_layout.addWidget(self.title_label)
         text_layout.addWidget(self.subtitle_label)
         layout.addWidget(self.icon_label)
@@ -86,7 +89,7 @@ class MenuListItem(GlassFrame):
         self.setStyleSheet(f"""
             #MenuItem {{
                 background-color: {bg_color};
-                border: 1px solid rgba(255, 255, 255, 0.8);
+                border: 1px solid rgba(255, 255, 255, 0.1);
                 border-radius: 16px;
             }}
         """)
@@ -113,6 +116,33 @@ class MenuListItem(GlassFrame):
             else:
                 self._apply_bg(self.default_bg)
         super().mouseReleaseEvent(event)
+
+# 1.5 안티얼라이어징이 완벽하게 적용된 원형 버튼
+class SmoothRoundButton(QPushButton):
+    def __init__(self, text, parent=None):
+        super().__init__(text, parent)
+        self.setFixedSize(26, 26)
+        self.setCursor(Qt.PointingHandCursor)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.Antialiasing)
+        
+        # 눌림 상태에 따른 배경색 처리
+        if self.isDown():
+            painter.setBrush(QColor(51, 51, 51)) # #333333
+        else:
+            painter.setBrush(QColor(0, 0, 0))    # #000000
+            
+        # 메뉴 아이템과 동일한 두께와 색상의 테두리 펜 설정 (투명도 10%)
+        painter.setPen(QPen(QColor(255, 255, 255, 25), 1.0))
+        
+        # 픽셀이 잘리지 않도록 0.5px 보정된 위치에 완벽한 원 그리기
+        rect = QRectF(0.5, 0.5, self.width() - 1, self.height() - 1)
+        painter.drawEllipse(rect)
+        
+        # 내부 텍스트 렌더링(QSS 적용)은 기본 엔진이 덧그리도록 호출
+        super().paintEvent(event)
 
 # 2.1 iMessage 스타일의 뾰족한 꼬리 말풍선 배경
 class BubbleFrame(QFrame):

@@ -2,7 +2,7 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
-from view.view_components import ChatItem, CustomInput
+from view.view_components import ChatItem, CustomInput, SmoothScrollArea, SmoothRoundButton
 
 # 4.1 채팅 인터페이스 전체 레이아웃 및 스크롤 영역 관리
 class ChatView(QWidget):
@@ -27,27 +27,26 @@ class ChatView(QWidget):
         self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
         self.main_layout.addWidget(self.top_bar)
 
-        self.back_btn = QPushButton("←", self.container)
-        self.back_btn.setFixedSize(26, 26)
-        self.back_btn.setCursor(Qt.PointingHandCursor)
+        self.back_btn = SmoothRoundButton("←", self.container)
         self.back_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; font-size: 15px; border: none; border-radius: 13px; color: white; padding: 0px; }
-            QPushButton:pressed { background-color: #0051A8; }
+            QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding: 0px; }
         """)
         
-        self.menu_btn = QPushButton("≡", self.container)
-        self.menu_btn.setFixedSize(26, 26)
-        self.menu_btn.setCursor(Qt.PointingHandCursor)
+        self.menu_btn = SmoothRoundButton("≡", self.container)
         self.menu_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; font-size: 17px; border: none; border-radius: 13px; color: white; padding-bottom: 3px; }
-            QPushButton:pressed { background-color: #0051A8; }
+            QPushButton { background: transparent; font-size: 17px; color: white; border: none; padding-bottom: 3px; }
         """)
 
-        self.scroll = QScrollArea()
+        self.close_btn = SmoothRoundButton("✕", self.container)
+        self.close_btn.setStyleSheet("""
+            QPushButton { background: transparent; font-size: 14px; font-weight: bold; color: white; border: none; padding-bottom: 2px; }
+        """)
+        self.close_btn.clicked.connect(lambda: self.window().close())
+
+        self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.scroll.verticalScrollBar().setSingleStep(25)
         self.scroll.setStyleSheet("""
             QScrollArea { border: none; background: transparent; }
             QScrollBar:vertical {
@@ -95,7 +94,7 @@ class ChatView(QWidget):
         """)
         self.dropdown_menu.hide()
 
-        self.dropdown_scroll = QScrollArea()
+        self.dropdown_scroll = SmoothScrollArea()
         self.dropdown_scroll.setWidgetResizable(True)
         self.dropdown_scroll.setFrameShape(QFrame.NoFrame)
         self.dropdown_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
@@ -193,6 +192,7 @@ class ChatView(QWidget):
         
         self.back_btn.raise_()
         self.menu_btn.raise_()
+        self.close_btn.raise_()
 
     # 4.2 스크롤바 페이드 인/아웃 제어 로직
     def show_scrollbar(self, *args):
@@ -285,6 +285,8 @@ class ChatView(QWidget):
             self.back_btn.move(island_x - 31, 10)
         if hasattr(self, 'menu_btn'):
             self.menu_btn.move(island_x + 125, 10)
+        if hasattr(self, 'close_btn'):
+            self.close_btn.move(island_x + 156, 10)
             
         if hasattr(self, 'dropdown_menu') and not self.dropdown_menu.isHidden():
             self.dropdown_menu.move(self.width() - 196, 50)

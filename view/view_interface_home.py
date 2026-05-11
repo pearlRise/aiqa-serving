@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
-from view.view_components import SmoothScrollArea, GlassFrame, IndicatorInfoCell, MenuListItem
+from view.view_components import SmoothScrollArea, GlassFrame, IndicatorInfoCell, MenuListItem, SmoothRoundButton
 
 # 4.1 메인 홈 인터페이스 레이아웃 관리
 class HomeView(QWidget):
@@ -74,8 +74,8 @@ class HomeView(QWidget):
         self.scroll_content.setStyleSheet("background: transparent;")
         
         self.scroll_layout = QVBoxLayout(self.scroll_content)
-        self.scroll_layout.setContentsMargins(16, 30, 8, 30)
-        self.scroll_layout.setSpacing(20) 
+        self.scroll_layout.setContentsMargins(16, 12, 8, 30)
+        self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
 
         # 4.2 사용자 환영 문구 및 배너 영역
@@ -90,9 +90,9 @@ class HomeView(QWidget):
         banner_text_layout = QVBoxLayout()
         banner_text_layout.setAlignment(Qt.AlignVCenter)
         banner_title = QLabel("Welcome, Jihwan!")
-        banner_title.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 16px; background: transparent; border: none;")
+        banner_title.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 16px; background: transparent; border: none;")
         banner_sub = QLabel("Ollama Control Center")
-        banner_sub.setStyleSheet("color: #4A5568; font-size: 12px; background: transparent; border: none;")
+        banner_sub.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none;")
         banner_text_layout.addWidget(banner_title)
         banner_text_layout.addWidget(banner_sub)
         
@@ -124,7 +124,7 @@ class HomeView(QWidget):
             cell = IndicatorInfoCell()
             cell.setFixedHeight(95)
             
-            line_color = "rgba(0, 0, 0, 0.12)"
+            line_color = "rgba(255, 255, 255, 0.1)"
             border_style = "border: none; border-radius: 0px;"
             if col == 0: 
                 border_style += f"border-right: 1px solid {line_color};"
@@ -146,7 +146,7 @@ class HomeView(QWidget):
             icon_label.setStyleSheet("background: transparent; border: none;")
             
             val_label = QLabel(value)
-            val_label.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            val_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             val_label.setAlignment(Qt.AlignCenter)
             
             if title == "Server":
@@ -154,7 +154,7 @@ class HomeView(QWidget):
                 self.server_status_label = val_label
             
             title_label = QLabel(title)
-            title_label.setStyleSheet("color: #666666; font-size: 11px; background: transparent; border: none;")
+            title_label.setStyleSheet("color: #8E8E93; font-size: 11px; background: transparent; border: none;")
             title_label.setAlignment(Qt.AlignCenter)
             
             cell_layout.addWidget(icon_label)
@@ -200,22 +200,25 @@ class HomeView(QWidget):
         self.island.setStyleSheet("background-color: black; border-radius: 13px;")
         self.island.raise_()
 
-        self.exclaim_btn = QPushButton("!", self.container)
-        self.exclaim_btn.setFixedSize(26, 26)
+        self.exclaim_btn = SmoothRoundButton("!", self.container)
         self.exclaim_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; font-size: 15px; border: none; border-radius: 13px; color: white; padding: 0px; }
-            QPushButton:pressed { background-color: #0051A8; }
+            QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding: 0px; }
         """)
         
-        self.question_btn = QPushButton("?", self.container)
-        self.question_btn.setFixedSize(26, 26)
+        self.question_btn = SmoothRoundButton("?", self.container)
         self.question_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; font-size: 15px; border: none; border-radius: 13px; color: white; padding-bottom: 3px; }
-            QPushButton:pressed { background-color: #0051A8; }
+            QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding-bottom: 3px; }
         """)
+
+        self.close_btn = SmoothRoundButton("✕", self.container)
+        self.close_btn.setStyleSheet("""
+            QPushButton { background: transparent; font-size: 14px; font-weight: bold; color: white; border: none; padding-bottom: 2px; }
+        """)
+        self.close_btn.clicked.connect(lambda: self.window().close())
 
         self.exclaim_btn.raise_()
         self.question_btn.raise_()
+        self.close_btn.raise_()
 
     # 4.6 창 크기 변경에 따른 아일랜드 위치 재조정
     def resizeEvent(self, event):
@@ -227,6 +230,8 @@ class HomeView(QWidget):
             self.exclaim_btn.move(island_x - 31, 10)
         if hasattr(self, 'question_btn'):
             self.question_btn.move(island_x + 125, 10)
+        if hasattr(self, 'close_btn'):
+            self.close_btn.move(island_x + 156, 10)
 
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:
@@ -244,7 +249,7 @@ class HomeView(QWidget):
             
         if status == "running":
             self.server_status_label.setText("Running")
-            self.server_status_label.setStyleSheet("color: #1A1A1A; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            self.server_status_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("🟢")
         elif status == "stopped":
             self.server_status_label.setText("Stopped")
