@@ -74,5 +74,7 @@ class ServerManager:
                         yield chunk.get("response", "")
                         if chunk.get("done"):
                             break
+        except requests.exceptions.ConnectionError:
+            yield "please run the server first 😁"
         except Exception as e:
             yield f"Connection Failed: {str(e)}"

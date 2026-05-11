@@ -50,6 +50,7 @@ class MainController(QMainWindow):
         # 사용자가 전송 버튼/엔터키 누름 -> 백엔드 로직 실행 및 입력창 비우기
         self.chat_view.send_btn.clicked.connect(self.handle_send_message)
         self.chat_view.input_field.returnPressed.connect(self.handle_send_message)
+        self.chat_view.back_btn.clicked.connect(self.slide_to_home)
         
         # 1.5 스트리밍 시그널 연결
         self.chat_logic.thinking_started.connect(lambda: self.chat_view.add_chat_bubble("{...}", is_me=False, sender_name="Gemma"))
@@ -73,25 +74,6 @@ class MainController(QMainWindow):
         self.island_layout.setContentsMargins(6, 0, 6, 0)
         self.island_layout.setSpacing(0)
 
-        self.back_btn = QPushButton("◁")
-        self.back_btn.setFixedSize(18, 18)
-        self.back_btn.setCursor(Qt.PointingHandCursor)
-        self.back_btn.setStyleSheet("""
-            QPushButton {
-                background-color: #333333;
-                color: #FFFFFF;
-                border-radius: 9px;
-                font-weight: bold;
-                font-size: 10px;
-                border: none;
-            }
-            QPushButton:hover { background-color: #555555; }
-            QPushButton:pressed { background-color: #777777; }
-        """)
-        self.back_btn.clicked.connect(self.slide_to_home)
-        self.back_btn.hide()
-
-        self.island_layout.addWidget(self.back_btn, alignment=Qt.AlignLeft | Qt.AlignVCenter)
         self.island_layout.addStretch()
 
         self.old_pos = None
@@ -111,6 +93,7 @@ class MainController(QMainWindow):
     def handle_send_message(self):
         text = self.chat_view.input_field.toPlainText().strip()
         if text:
+            self.chat_view.add_chat_bubble(text, is_me=True)
             self.chat_logic.process_message(text)
             self.chat_view.input_field.clear()
 
@@ -136,7 +119,6 @@ class MainController(QMainWindow):
     def slide_to_chat(self):
         if self.is_chat_active: return
         self.is_chat_active = True
-        self.back_btn.show()
         
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
@@ -159,7 +141,6 @@ class MainController(QMainWindow):
     def slide_to_home(self):
         if not self.is_chat_active: return
         self.is_chat_active = False
-        self.back_btn.hide()
         
         self.anim_group = QParallelAnimationGroup()
         w = self.width()

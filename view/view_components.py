@@ -145,15 +145,18 @@ class ChatItem(QWidget):
             self.bubble_hlayout.addWidget(self.time_label, alignment=Qt.AlignBottom)
             self.bubble_hlayout.addStretch()
         self.update_width(305)
+        self.needs_width_update = False
     def update_width(self, window_width=305):
         max_text_width = int(window_width * 0.688) - (self.padding_x * 2) - self.tail_width
         actual_text_width = min(self.pure_ideal_width, max_text_width) + 2
         self.doc.setTextWidth(actual_text_width if self.pure_ideal_width > max_text_width else -1)
-        text_height = math.ceil(self.doc.size().height()) + 2
+        text_height = math.ceil(self.doc.size().height()) + 4
         margin = (self.padding_x, self.padding_y, self.padding_x + self.tail_width, self.padding_y) if self.is_me else (self.padding_x + self.tail_width, self.padding_y, self.padding_x, self.padding_y)
         self.bg_layout.setContentsMargins(*margin)
         self.bubble.setFixedSize(actual_text_width, text_height)
         self.bg_frame.setFixedSize(actual_text_width + (self.padding_x * 2) + self.tail_width, text_height + (self.padding_y * 2))
+        self.bg_layout.invalidate()
+        self.main_layout.invalidate()
         self.setFixedHeight(self.main_layout.sizeHint().height())
     def remove_tail_and_time(self):
         self.bg_frame.has_tail = False; self.bg_frame.update(); self.time_label.hide()
@@ -168,7 +171,8 @@ class CustomInput(QTextEdit):
     returnPressed = Signal()
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(40); self.setPlaceholderText("Message...")
+        self.document().setDocumentMargin(0)
+        self.setFixedHeight(44); self.setPlaceholderText("Message...")
         self.setFrameShape(QFrame.NoFrame)
         # 1.1 기본적으로 스크롤바를 숨김 (최대 높이 도달 시에만 켬)
         self.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
@@ -176,7 +180,7 @@ class CustomInput(QTextEdit):
         self.setStyleSheet("""
             QTextEdit { 
                 background-color: #FFFFFF; color: #000000;
-                border-radius: 20px; padding: 10px 12px; border: 1px solid #BDC3C7;
+                border-radius: 22px; padding: 12px 12px; border: 1px solid #BDC3C7;
             }
             QScrollBar:vertical { border: none; background: transparent; width: 4px; }
             QScrollBar::handle:vertical { background: rgba(0, 0, 0, 0.1); border-radius: 2px; }

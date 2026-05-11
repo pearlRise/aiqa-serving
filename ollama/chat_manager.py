@@ -14,6 +14,12 @@ class ChatWorker(QThread):
         self.prompt = prompt
 
     def run(self):
+        # 서버가 실행 중이 아닌 경우 즉시 안내 문구를 응답으로 보내고 스레드 종료
+        if not self.ollama.is_running():
+            self.chunk_received.emit("🧐 Please run server first!")
+            self.finished.emit()
+            return
+
         # 서버로부터 스트리밍 데이터 수신
         for chunk in self.ollama.chat_stream(self.model_name, self.prompt):
             self.chunk_received.emit(chunk)
@@ -48,5 +54,10 @@ class ChatController(QObject):
         self.worker = ChatWorker(self.ollama, self.model_name, text)
         self.worker.chunk_received.connect(self.chunk_delivered.emit)
         # 스레드 종료 시 메모리 해제
-        self.worker.finished.connect(self.worker.deleteLater)
+        self.worker.finished.connect(self._cleanup_worker)
         self.worker.start()
+
+    def _cleanup_worker(self):
+        if self.worker:
+            self.worker.deleteLater()
+            self.worker = None
