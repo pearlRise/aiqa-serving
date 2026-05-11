@@ -2,6 +2,7 @@ import sys
 import os
 import atexit
 import signal
+import time
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.abspath(os.path.join(current_dir, ".."))
@@ -64,6 +65,7 @@ class MainController(QMainWindow):
         self.home_view.serve_requested.connect(self.toggle_ollama_serve)
         self.home_view.chat_requested.connect(self.slide_to_chat)
         self.home_view.selection_requested.connect(self.slide_to_selection)
+        self.selection_view.model_selected.connect(self.handle_model_selection)
         self.selection_view.back_requested.connect(self.slide_to_home)
 
         self.status_timer = QTimer(self)
@@ -169,11 +171,25 @@ class MainController(QMainWindow):
 
         self.anim_group.start()
 
+    def handle_model_selection(self, model_name):
+        if self.ollama.active_model == model_name:
+            self.ollama.unload_model(model_name)
+        else:
+            self.ollama.load_model(model_name)
+        
+        active = self.ollama.active_model
+        self.selection_view.set_active_model(active)
+        self.home_view.update_model_status(active)
+
     def slide_to_selection(self):
         if not self.ollama.is_running(): return
         if self.is_chat_active or self.is_selection_active: return
+
+        # 서버에서 모델 리스트를 가져와 뷰에 업데이트
+        models = self.ollama.get_local_models()
+        self.selection_view.update_model_list(models, self.ollama.active_model)
+
         self.is_selection_active = True
-        
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         
@@ -255,7 +271,18 @@ class MainController(QMainWindow):
         
     # 6.3 창 닫기 이벤트 시 안전한 서버 종료 처리
     def closeEvent(self, event):
+        self.update_server_ui("loading")
+        QApplication.processEvents()
+        
         self.ollama.stop_server()
+        
+        # 서버가 확실히 종료되었는지 폴링 대기 (최대 약 3초)
+        for _ in range(15):
+            if not self.ollama.is_running():
+                break
+            QApplication.processEvents()
+            time.sleep(0.2)
+            
         event.accept()
 
     # 7.1 Ollama 서버 구동 및 중지 제어
@@ -271,7 +298,16 @@ class MainController(QMainWindow):
             self.is_server_stopping = True
             self.update_server_ui("loading")
             QApplication.processEvents()
+            
             self.ollama.stop_server()
+            
+            # 서버 닫힘 UI 동기화 및 꼬임 방지를 위한 종료 대기
+            for _ in range(15):
+                if not self.ollama.is_running():
+                    break
+                QApplication.processEvents()
+                time.sleep(0.2)
+                
             self.is_server_stopping = False
             self.check_ollama_status()
 
@@ -285,16 +321,20 @@ class MainController(QMainWindow):
                 self.update_server_ui("loading")
             else:
                 self.update_server_ui("running")
+                self.home_view.update_model_status(self.ollama.active_model)
         else:
+            self.ollama.active_model = None  # 서버 중지 시 로컬 상태 초기화
             if self.is_server_starting:
                 if self.ollama.process and self.ollama.process.poll() is not None:
                     self.is_server_starting = False
                     self.update_server_ui("stopped")
+                    self.home_view.update_model_status(None)
                 else:
                     self.update_server_ui("loading")
             else:
                 self.is_server_stopping = False
                 self.update_server_ui("stopped")
+                self.home_view.update_model_status(None)
 
     def update_server_ui(self, status):
         self.home_view.update_server_status(status)

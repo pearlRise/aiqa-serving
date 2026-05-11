@@ -153,6 +153,9 @@ class HomeView(QWidget):
             if title == "Server":
                 self.server_icon_label = icon_label
                 self.server_status_label = val_label
+            elif title == "Model":
+                self.model_icon_label = icon_label
+                self.model_status_label = val_label
             
             title_label = QLabel(title)
             title_label.setStyleSheet("color: #8E8E93; font-size: 11px; background: transparent; border: none;")
@@ -271,3 +274,12 @@ class HomeView(QWidget):
             is_running = (status == "running")
             self.choose_model_item.setEnabled(is_running)
             self.choose_model_effect.setOpacity(1.0 if is_running else 0.4)
+
+    def update_model_status(self, model_name):
+        if not hasattr(self, 'model_status_label'): return
+        if model_name:
+            self.model_status_label.setText(model_name)
+            self.model_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+        else:
+            self.model_status_label.setText("None")
+            self.model_status_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")

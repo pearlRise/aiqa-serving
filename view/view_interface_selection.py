@@ -1,11 +1,12 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect
+    QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from view.view_components import SmoothScrollArea, MenuListItem, SmoothRoundButton
 
 class SelectionView(QWidget):
     back_requested = Signal()
+    model_selected = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -76,11 +77,8 @@ class SelectionView(QWidget):
         self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
         
-        # 5개의 더미 메뉴 생성
-        for i in range(1, 11):
-            item = MenuListItem("🤖", f"Model Dummy {i}", f"This is dummy model item {i}")
-            self.scroll_layout.addWidget(item)
-            
+        # 모델 리스트는 MainController에서 `update_model_list`를 통해 동적으로 채워집니다.
+
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
@@ -103,6 +101,46 @@ class SelectionView(QWidget):
         self.back_btn.raise_()
         self.menu_btn.raise_()
         self.close_btn.raise_()
+
+    def update_model_list(self, models, active_model=None):
+        # 기존 위젯 모두 삭제
+        while self.scroll_layout.count():
+            item = self.scroll_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+
+        if not models:
+            info_label = QLabel("No models found on the Ollama server.\nYou can pull a model using 'ollama pull <model_name>'.")
+            info_label.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none; padding: 20px;")
+            info_label.setAlignment(Qt.AlignCenter)
+            info_label.setWordWrap(True)
+            self.scroll_layout.addWidget(info_label)
+            return
+
+        # 모델 이름순으로 정렬하여 추가
+        for model in sorted(models, key=lambda x: x.get('name', '')):
+            model_name = model.get('name', 'Unknown Model')
+            model_size = model.get('size', 0)
+
+            if model_size > 0:
+                size_gb = round(model_size / (1024**3), 2)
+                subtitle = f"Size: {size_gb} GB"
+            else:
+                subtitle = "Size: Unknown"
+
+            item = MenuListItem("🤖", model_name, subtitle)
+            if active_model == model_name:
+                item.set_active(True)
+            item.clicked.connect(self.model_selected.emit)
+            self.scroll_layout.addWidget(item)
+
+    def set_active_model(self, active_model_name):
+        for i in range(self.scroll_layout.count()):
+            widget = self.scroll_layout.itemAt(i).widget()
+            if isinstance(widget, MenuListItem):
+                is_active = (widget.title_label.text() == active_model_name)
+                widget.set_active(is_active)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

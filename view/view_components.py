@@ -57,6 +57,7 @@ class MenuListItem(GlassFrame):
         super().__init__(radius=16)
         self.setFixedHeight(72)
         self.setCursor(QCursor(Qt.PointingHandCursor))
+        self.is_active = False
         
         self.setObjectName("MenuItem")
         self.default_bg = "rgba(255, 255, 255, 0.05)"
@@ -93,6 +94,21 @@ class MenuListItem(GlassFrame):
                 border-radius: 16px;
             }}
         """)
+
+    def set_active(self, is_active):
+        self.is_active = is_active
+        if is_active:
+            self.default_bg = "rgba(230, 162, 60, 0.15)"
+            self.hover_bg = "rgba(230, 162, 60, 0.25)"
+            self.pressed_bg = "rgba(230, 162, 60, 0.35)"
+            self.title_label.setStyleSheet("color: #E6A23C; font-size: 15px; font-weight: bold; background: transparent; border: none;")
+        else:
+            self.default_bg = "rgba(255, 255, 255, 0.05)"
+            self.hover_bg = "rgba(255, 255, 255, 0.12)"
+            self.pressed_bg = "rgba(255, 255, 255, 0.2)"
+            self.title_label.setStyleSheet("color: #FFFFFF; font-size: 15px; font-weight: bold; background: transparent; border: none;")
+        
+        self._apply_bg(self.default_bg)
 
     def enterEvent(self, event):
         self._apply_bg(self.hover_bg)

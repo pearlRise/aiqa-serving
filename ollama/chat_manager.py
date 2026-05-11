@@ -34,7 +34,6 @@ class ChatController(QObject):
     def __init__(self, ollama_manager):
         super().__init__()
         self.ollama = ollama_manager
-        self.model_name = "gemma4:26b"
         self.worker = None
 
     # 2.1 사용자가 메시지를 보냈을 때 백엔드에서 처리할 로직
@@ -47,11 +46,16 @@ class ChatController(QObject):
         if self.worker and self.worker.isRunning():
             return
 
+        # 사용자가 모델을 선택하지 않았을 경우 안내
+        if not self.ollama.active_model:
+            self.chunk_delivered.emit("🧐 Please choose a model from the 'Choose Model' menu first!")
+            return
+
         # 2.2 생각 중 상태 알림 (프론트에서 {...} 버블 생성 유도)
         self.thinking_started.emit()
         
         # 2.3 워커 스레드 생성 및 실행
-        self.worker = ChatWorker(self.ollama, self.model_name, text)
+        self.worker = ChatWorker(self.ollama, self.ollama.active_model, text)
         self.worker.chunk_received.connect(self.chunk_delivered.emit)
         # 스레드 종료 시 메모리 해제
         self.worker.finished.connect(self._cleanup_worker)
