@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
-from view.view_components import SmoothScrollArea, MenuListItem, SmoothRoundButton
+from view.common_ui import SmoothScrollArea, SmoothRoundButton
+from view.menu_ui import MenuListItem
 
 class SelectionView(QWidget):
     back_requested = Signal()

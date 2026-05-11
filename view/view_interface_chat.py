@@ -2,7 +2,8 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
-from view.view_components import ChatItem, CustomInput, SmoothScrollArea, SmoothRoundButton
+from view.common_ui import SmoothScrollArea, SmoothRoundButton
+from view.chat_ui import ChatItem, CustomInput
 
 # 4.1 채팅 인터페이스 전체 레이아웃 및 스크롤 영역 관리
 class ChatView(QWidget):

@@ -1,7 +1,8 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
-from view.view_components import SmoothScrollArea, GlassFrame, IndicatorInfoCell, MenuListItem, SmoothRoundButton
+from view.common_ui import SmoothScrollArea, GlassFrame, SmoothRoundButton
+from view.menu_ui import IndicatorInfoCell, MenuListItem
 
 # 4.1 메인 홈 인터페이스 레이아웃 관리
 class HomeView(QWidget):
@@ -217,9 +218,11 @@ class HomeView(QWidget):
             item = MenuListItem(icon, title, sub)
 
             if title == "Ollama Serve":
+                self.serve_item = item
                 item.clicked.connect(lambda _: self.serve_requested.emit())
 
             if title == "Ollama Chat":
+                self.chat_item = item
                 item.clicked.connect(lambda _: self.chat_requested.emit())
 
             if title == "Choose Model":
@@ -285,6 +288,13 @@ class HomeView(QWidget):
 
     def hide_scrollbar(self):
         self.scrollbar_anim.start()
+
+    # 4.7 엔진 토글에 따른 동적 메뉴 이름 변경
+    def update_engine_menus(self, engine_name):
+        if hasattr(self, 'serve_item'):
+            self.serve_item.title_label.setText(f"{engine_name} Serve")
+        if hasattr(self, 'chat_item'):
+            self.chat_item.title_label.setText(f"{engine_name} Chat")
 
     # 4.5 서버 상태에 따른 대시보드 UI 실시간 업데이트
     def update_server_status(self, status):
