@@ -16,26 +16,30 @@ class ChatView(QWidget):
         base_layout.setContentsMargins(0, 0, 0, 0)
         base_layout.addWidget(self.container)
         
-        self.container.setStyleSheet("#MainBody { background-color: #ABC1D1; border: 1px solid #222; border-radius: 48px; }")        
+        self.container.setStyleSheet("#MainBody { background-color: #000000; border: 1px solid #222; border-radius: 48px; }")        
         
         self.main_layout = QVBoxLayout(self.container)
         self.main_layout.setContentsMargins(0, 0, 0, 10)
         self.main_layout.setSpacing(0) 
-        self.main_layout.addSpacing(2)
 
-        self.back_btn = QPushButton("‹", self.container)
-        self.back_btn.setFixedSize(30, 30)
+        self.top_bar = QFrame(self.container)
+        self.top_bar.setFixedHeight(48)
+        self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
+        self.main_layout.addWidget(self.top_bar)
+
+        self.back_btn = QPushButton("←", self.container)
+        self.back_btn.setFixedSize(26, 26)
         self.back_btn.setCursor(Qt.PointingHandCursor)
         self.back_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; font-size: 24px; font-weight: bold; border: none; border-radius: 15px; color: white; padding-bottom: 2px; }
+            QPushButton { background-color: #007AFF; font-size: 15px; border: none; border-radius: 13px; color: white; padding: 0px; }
             QPushButton:pressed { background-color: #0051A8; }
         """)
         
         self.menu_btn = QPushButton("≡", self.container)
-        self.menu_btn.setFixedSize(30, 30)
+        self.menu_btn.setFixedSize(26, 26)
         self.menu_btn.setCursor(Qt.PointingHandCursor)
         self.menu_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; font-size: 20px; font-weight: bold; border: none; border-radius: 15px; color: white; }
+            QPushButton { background-color: #007AFF; font-size: 17px; border: none; border-radius: 13px; color: white; padding-bottom: 3px; }
             QPushButton:pressed { background-color: #0051A8; }
         """)
 
@@ -181,6 +185,12 @@ class ChatView(QWidget):
 
         self.input_field.setFocus()
         
+        # 4.1.1 다이내믹 아일랜드 UI 구성 (각 화면마다 개별 배치)
+        self.island = QFrame(self.container)
+        self.island.setFixedSize(120, 26)
+        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
+        self.island.raise_()
+        
         self.back_btn.raise_()
         self.menu_btn.raise_()
 
@@ -267,12 +277,14 @@ class ChatView(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         
+        island_x = (self.width() - 120) // 2
+        
+        if hasattr(self, 'island'):
+            self.island.move(island_x, 10)
         if hasattr(self, 'back_btn'):
-            island_x = (self.width() - 120) // 2
-            self.back_btn.move(island_x - 35, 6)
+            self.back_btn.move(island_x - 31, 10)
         if hasattr(self, 'menu_btn'):
-            island_x = (self.width() - 120) // 2
-            self.menu_btn.move(island_x + 125, 6)
+            self.menu_btn.move(island_x + 125, 10)
             
         if hasattr(self, 'dropdown_menu') and not self.dropdown_menu.isHidden():
             self.dropdown_menu.move(self.width() - 196, 50)

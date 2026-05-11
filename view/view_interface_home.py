@@ -1,4 +1,4 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
 from view.view_components import SmoothScrollArea, GlassFrame, IndicatorInfoCell, MenuListItem
@@ -19,8 +19,8 @@ class HomeView(QWidget):
         
         self.container.setStyleSheet("""
             #MainBody { 
-                background-color: #BACEE0; 
-                border: 1px solid #99AABF; 
+                background-color: #000000; 
+                border: 1px solid #222; 
                 border-radius: 48px; 
             }
         """)        
@@ -28,7 +28,11 @@ class HomeView(QWidget):
         self.main_layout = QVBoxLayout(self.container)
         self.main_layout.setContentsMargins(0, 0, 0, 21) 
         self.main_layout.setSpacing(0)
-        self.main_layout.addSpacing(21) 
+
+        self.top_bar = QFrame(self.container)
+        self.top_bar.setFixedHeight(48)
+        self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
+        self.main_layout.addWidget(self.top_bar)
 
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -189,6 +193,40 @@ class HomeView(QWidget):
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
+
+        # 4.5 다이내믹 아일랜드 UI 구성 (각 화면마다 개별 배치)
+        self.island = QFrame(self.container)
+        self.island.setFixedSize(120, 26)
+        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
+        self.island.raise_()
+
+        self.exclaim_btn = QPushButton("!", self.container)
+        self.exclaim_btn.setFixedSize(26, 26)
+        self.exclaim_btn.setStyleSheet("""
+            QPushButton { background-color: #007AFF; font-size: 15px; border: none; border-radius: 13px; color: white; padding: 0px; }
+            QPushButton:pressed { background-color: #0051A8; }
+        """)
+        
+        self.question_btn = QPushButton("?", self.container)
+        self.question_btn.setFixedSize(26, 26)
+        self.question_btn.setStyleSheet("""
+            QPushButton { background-color: #007AFF; font-size: 15px; border: none; border-radius: 13px; color: white; padding-bottom: 3px; }
+            QPushButton:pressed { background-color: #0051A8; }
+        """)
+
+        self.exclaim_btn.raise_()
+        self.question_btn.raise_()
+
+    # 4.6 창 크기 변경에 따른 아일랜드 위치 재조정
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        island_x = (self.width() - 120) // 2
+        if hasattr(self, 'island'):
+            self.island.move(island_x, 10)
+        if hasattr(self, 'exclaim_btn'):
+            self.exclaim_btn.move(island_x - 31, 10)
+        if hasattr(self, 'question_btn'):
+            self.question_btn.move(island_x + 125, 10)
 
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:

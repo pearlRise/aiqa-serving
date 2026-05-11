@@ -64,18 +64,6 @@ class MainController(QMainWindow):
         self.status_timer.timeout.connect(self.check_ollama_status)
         self.status_timer.start(2000)
 
-        # 2.1 다이내믹 아일랜드 UI 구성 및 레이아웃 설정
-        self.island = QFrame(self)
-        self.island.setFixedSize(120, 26)
-        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
-        self.island.raise_()
-
-        self.island_layout = QHBoxLayout(self.island)
-        self.island_layout.setContentsMargins(6, 0, 6, 0)
-        self.island_layout.setSpacing(0)
-
-        self.island_layout.addStretch()
-
         self.old_pos = None
         self.logical_pos = None
         self.is_chat_active = False
@@ -112,8 +100,6 @@ class MainController(QMainWindow):
         else:
             self.home_view.move(0, 0)
             self.chat_view.move(w, 0)
-
-        self.island.move(int((w - self.island.width()) / 2), 8)
 
     # 4.1 홈에서 채팅 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_chat(self):

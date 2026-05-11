@@ -54,6 +54,13 @@ class MenuListItem(GlassFrame):
         super().__init__(radius=16)
         self.setFixedHeight(72)
         self.setCursor(QCursor(Qt.PointingHandCursor))
+        
+        self.setObjectName("MenuItem")
+        self.default_bg = "rgba(255, 255, 255, 0.5)"
+        self.hover_bg = "rgba(255, 255, 255, 0.8)"
+        self.pressed_bg = "rgba(200, 210, 225, 0.8)"
+        self._apply_bg(self.default_bg)
+
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 12, 16, 12)
         layout.setSpacing(16)
@@ -74,9 +81,38 @@ class MenuListItem(GlassFrame):
         layout.addWidget(self.icon_label)
         layout.addLayout(text_layout)
         layout.addStretch()
+        
+    def _apply_bg(self, bg_color):
+        self.setStyleSheet(f"""
+            #MenuItem {{
+                background-color: {bg_color};
+                border: 1px solid rgba(255, 255, 255, 0.8);
+                border-radius: 16px;
+            }}
+        """)
+
+    def enterEvent(self, event):
+        self._apply_bg(self.hover_bg)
+        super().enterEvent(event)
+
+    def leaveEvent(self, event):
+        self._apply_bg(self.default_bg)
+        super().leaveEvent(event)
+
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton: self.clicked.emit(self.title_label.text())
+        if event.button() == Qt.LeftButton:
+            self._apply_bg(self.pressed_bg)
         super().mousePressEvent(event)
+
+    def mouseReleaseEvent(self, event):
+        if event.button() == Qt.LeftButton:
+            if self.underMouse():
+                self._apply_bg(self.hover_bg)
+                # 마우스를 뗄 때 (클릭 완료 시) 신호 발생
+                self.clicked.emit(self.title_label.text())
+            else:
+                self._apply_bg(self.default_bg)
+        super().mouseReleaseEvent(event)
 
 # 2.1 iMessage 스타일의 뾰족한 꼬리 말풍선 배경
 class BubbleFrame(QFrame):
