@@ -19,6 +19,7 @@ from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimat
 from view.view_interface_home import HomeView
 from view.view_interface_chat import ChatView
 from view.view_interface_selection import SelectionView
+from view.view_interface_template import TemplateView
 
 # 1.1 메인 컨트롤러 및 윈도우 관리 클래스
 class MainController(QMainWindow):
@@ -51,6 +52,9 @@ class MainController(QMainWindow):
         self.selection_view = SelectionView()
         self.selection_view.setParent(self.container)
 
+        self.template_view = TemplateView()
+        self.template_view.setParent(self.container)
+
         # 1.4 프론트(View)와 백(Controller)의 상호작용 연결 (Internal API)
         # 사용자가 전송 버튼/엔터키 누름 -> 백엔드 로직 실행 및 입력창 비우기
         self.chat_view.send_btn.clicked.connect(self.handle_send_message)
@@ -65,8 +69,11 @@ class MainController(QMainWindow):
         self.home_view.serve_requested.connect(self.toggle_ollama_serve)
         self.home_view.chat_requested.connect(self.slide_to_chat)
         self.home_view.selection_requested.connect(self.slide_to_selection)
+        self.home_view.template_requested.connect(self.slide_to_template)
         self.selection_view.model_selected.connect(self.handle_model_selection)
         self.selection_view.back_requested.connect(self.slide_to_home)
+        self.template_view.back_requested.connect(self.slide_to_home)
+        self.home_view.engine_toggle_btn.clicked.connect(self.toggle_engine)
 
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.check_ollama_status)
@@ -76,13 +83,16 @@ class MainController(QMainWindow):
         self.logical_pos = None
         self.is_chat_active = False
         self.is_selection_active = False
+        self.is_template_active = False
         self.resizing = False
         self.resize_margin = 10
         self.is_server_starting = False
         self.is_server_stopping = False
+        self.current_engine = "Ollama"
 
         self.chat_view.scroll.viewport().installEventFilter(self)
         self.selection_view.scroll.viewport().installEventFilter(self)
+        self.template_view.scroll.viewport().installEventFilter(self)
 
         # 앱 실행 시 초기 서버 상태 확인 (UI 렌더링 직후)
         QTimer.singleShot(100, self.check_ollama_status)
@@ -104,19 +114,28 @@ class MainController(QMainWindow):
         self.home_view.resize(w, h)
         self.chat_view.resize(w, h)
         self.selection_view.resize(w, h)
+        self.template_view.resize(w, h)
 
         if self.is_chat_active:
             self.home_view.move(-w, 0)
             self.chat_view.move(0, 0)
             self.selection_view.move(w, 0)
+            self.template_view.move(w, 0)
         elif self.is_selection_active:
             self.home_view.move(-w, 0)
             self.selection_view.move(0, 0)
             self.chat_view.move(w, 0)
+            self.template_view.move(w, 0)
+        elif self.is_template_active:
+            self.home_view.move(-w, 0)
+            self.template_view.move(0, 0)
+            self.chat_view.move(w, 0)
+            self.selection_view.move(w, 0)
         else:
             self.home_view.move(0, 0)
             self.chat_view.move(w, 0)
             self.selection_view.move(w, 0)
+            self.template_view.move(w, 0)
 
     # 4.1 홈에서 채팅 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_chat(self):
@@ -142,7 +161,7 @@ class MainController(QMainWindow):
 
     # 4.2 채팅에서 홈 화면으로의 슬라이딩 전환 애니메이션
     def slide_to_home(self):
-        if not (self.is_chat_active or self.is_selection_active): return
+        if not (self.is_chat_active or self.is_selection_active or self.is_template_active): return
             
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
@@ -168,6 +187,14 @@ class MainController(QMainWindow):
             anim_sel.setEasingCurve(QEasingCurve.InOutQuart)
             anim_sel.setDuration(450)
             self.anim_group.addAnimation(anim_sel)
+            
+        if self.is_template_active:
+            self.is_template_active = False
+            anim_tpl = QPropertyAnimation(self.template_view, b"pos")
+            anim_tpl.setEndValue(QPoint(w, 0))
+            anim_tpl.setEasingCurve(QEasingCurve.InOutQuart)
+            anim_tpl.setDuration(450)
+            self.anim_group.addAnimation(anim_tpl)
 
         self.anim_group.start()
 
@@ -207,6 +234,27 @@ class MainController(QMainWindow):
         self.anim_group.addAnimation(anim_sel)
         self.anim_group.start()
 
+    def slide_to_template(self):
+        if self.is_chat_active or self.is_selection_active or self.is_template_active: return
+
+        self.is_template_active = True
+        self.anim_group = QParallelAnimationGroup()
+        w = self.width()
+        
+        anim_home = QPropertyAnimation(self.home_view, b"pos")
+        anim_home.setEndValue(QPoint(-w, 0))
+        anim_home.setEasingCurve(QEasingCurve.InOutQuart)
+        anim_home.setDuration(450)
+
+        anim_tpl = QPropertyAnimation(self.template_view, b"pos")
+        anim_tpl.setEndValue(QPoint(0, 0))
+        anim_tpl.setEasingCurve(QEasingCurve.InOutQuart)
+        anim_tpl.setDuration(450)
+
+        self.anim_group.addAnimation(anim_home)
+        self.anim_group.addAnimation(anim_tpl)
+        self.anim_group.start()
+
     # 5.1 마우스 휠 제스처를 이용한 화면 전환 이벤트 필터링
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Wheel:
@@ -214,6 +262,9 @@ class MainController(QMainWindow):
                 self.slide_to_home()
                 return True
             elif hasattr(self, 'selection_view') and obj == self.selection_view.scroll.viewport() and self.is_selection_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
+                self.slide_to_home()
+                return True
+            elif hasattr(self, 'template_view') and obj == self.template_view.scroll.viewport() and self.is_template_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
                 self.slide_to_home()
                 return True
                 
@@ -338,6 +389,50 @@ class MainController(QMainWindow):
 
     def update_server_ui(self, status):
         self.home_view.update_server_status(status)
+
+    # 8.1 MLX / Ollama 엔진 전환 및 기존 서버 초기화
+    def toggle_engine(self):
+        # 토글 시 기존 실행 중인 서버와 적재된 모델 끄기
+        # 1 & 2: 서버가 실행 중이거나, 시작 중이거나, 프로세스가 남아있는 경우 무조건 개입
+        if self.ollama.is_running() or self.is_server_starting or self.ollama.process is not None:
+            self.is_server_starting = False  # 서버가 시작 중이었다면 즉시 중단(Abort)
+            self.is_server_stopping = True
+            self.update_server_ui("loading")
+            QApplication.processEvents()
+            
+            # 3: 모델 적재 상태를 명시적으로 점검하고 즉각 메모리 해제
+            if self.ollama.active_model:
+                self.ollama.unload_model(self.ollama.active_model)
+                self.ollama.active_model = None
+                self.home_view.update_model_status(None)
+                QApplication.processEvents()
+
+            self.ollama.stop_server()
+            
+            for _ in range(15):
+                if not self.ollama.is_running() and self.ollama.process is None:
+                    break
+                QApplication.processEvents()
+                time.sleep(0.2)
+                
+            self.is_server_stopping = False
+            self.check_ollama_status()
+            
+        # 엔진 모드 UI 갱신
+        if self.current_engine == "Ollama":
+            self.current_engine = "MLX"
+            self.home_view.engine_toggle_btn.setText("MLX")
+            self.home_view.engine_toggle_btn.setStyleSheet("""
+                QPushButton { background-color: #FF9500; color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }
+                QPushButton:hover { background-color: #CC7700; }
+            """)
+        else:
+            self.current_engine = "Ollama"
+            self.home_view.engine_toggle_btn.setText("Ollama")
+            self.home_view.engine_toggle_btn.setStyleSheet("""
+                QPushButton { background-color: #007AFF; color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }
+                QPushButton:hover { background-color: #0051A8; }
+            """)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

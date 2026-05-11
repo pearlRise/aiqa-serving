@@ -8,6 +8,7 @@ class HomeView(QWidget):
     chat_requested = Signal()
     serve_requested = Signal()
     selection_requested = Signal()
+    template_requested = Signal()
     def __init__(self):
         super().__init__()
         self.container = QWidget()
@@ -104,6 +105,35 @@ class HomeView(QWidget):
         
         self.scroll_layout.addWidget(self.banner)
 
+        # 4.2.1 백엔드 엔진 선택 메뉴 (Ollama / MLX)
+        self.engine_frame = GlassFrame(radius=16)
+        self.engine_frame.setFixedHeight(64)
+        engine_layout = QHBoxLayout(self.engine_frame)
+        engine_layout.setContentsMargins(20, 0, 20, 0)
+        
+        engine_title_layout = QVBoxLayout()
+        engine_title_layout.setAlignment(Qt.AlignVCenter)
+        self.engine_title = QLabel("Backend Engine")
+        self.engine_title.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 15px; background: transparent; border: none;")
+        self.engine_sub = QLabel("Select Ollama or MLX")
+        self.engine_sub.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none;")
+        engine_title_layout.addWidget(self.engine_title)
+        engine_title_layout.addWidget(self.engine_sub)
+        
+        self.engine_toggle_btn = QPushButton("Ollama")
+        self.engine_toggle_btn.setFixedSize(80, 32)
+        self.engine_toggle_btn.setCursor(Qt.PointingHandCursor)
+        self.engine_toggle_btn.setStyleSheet("""
+            QPushButton { background-color: #007AFF; color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }
+            QPushButton:hover { background-color: #0051A8; }
+        """)
+        
+        engine_layout.addLayout(engine_title_layout)
+        engine_layout.addStretch()
+        engine_layout.addWidget(self.engine_toggle_btn)
+        
+        self.scroll_layout.addWidget(self.engine_frame)
+
         # 4.3 서버 상태 및 시스템 정보 대시보드
         self.indicator_dashboard = GlassFrame(radius=20)
         self.indicator_dashboard.setMinimumHeight(220)
@@ -180,6 +210,7 @@ class HomeView(QWidget):
             ("🔨", "Create Model", "새로운 커스텀 모델 빌드"),
             ("📝", "Edit Prompt", "모델의 시스템 프롬프트 편집하기"),
             ("⚙️", "Settings", "앱 기본 테마 및 경로 설정"),
+            ("🧩", "Template View", "더미 템플릿 화면으로 이동"),
         ]
         
         for icon, title, sub in menus:
@@ -196,6 +227,9 @@ class HomeView(QWidget):
                 self.choose_model_effect = QGraphicsOpacityEffect()
                 self.choose_model_item.setGraphicsEffect(self.choose_model_effect)
                 item.clicked.connect(lambda _: self.selection_requested.emit())
+
+            if title == "Template View":
+                item.clicked.connect(lambda _: self.template_requested.emit())
 
             self.menu_layout.addWidget(item)
             
