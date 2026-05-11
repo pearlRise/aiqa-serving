@@ -1,13 +1,12 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect, QLabel
+    QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
-from view.common_ui import SmoothScrollArea, SmoothRoundButton
-from view.menu_ui import MenuListItem
+from view.components.common_ui import SmoothScrollArea, SmoothRoundButton
+from view.components.menu_ui import MenuListItem
 
-class SelectionView(QWidget):
+class TemplateView(QWidget):
     back_requested = Signal()
-    model_selected = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -19,6 +18,7 @@ class SelectionView(QWidget):
         base_layout.setContentsMargins(0, 0, 0, 0)
         base_layout.addWidget(self.container)
         
+        # 1. 메인 프레임 및 둥근 테두리 설정
         self.container.setStyleSheet("""
             #MainBody { 
                 background-color: #000000; 
@@ -31,11 +31,13 @@ class SelectionView(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 21) 
         self.main_layout.setSpacing(0)
 
+        # 2. 상단 영역 (Top Bar)
         self.top_bar = QFrame(self.container)
         self.top_bar.setFixedHeight(48)
         self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
         self.main_layout.addWidget(self.top_bar)
 
+        # 3. 스크롤 영역 및 스크롤바 애니메이션
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
@@ -78,11 +80,15 @@ class SelectionView(QWidget):
         self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
         
-        # 모델 리스트는 MainController에서 `update_model_list`를 통해 동적으로 채워집니다.
+        # 4. 더미 메뉴 10개 구성
+        for i in range(1, 11):
+            item = MenuListItem("📝", f"Template Menu {i}", "This is a dummy description.")
+            self.scroll_layout.addWidget(item)
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
+        # 5. 다이내믹 아일랜드 및 상단 제어 버튼 (뒤로가기, 메뉴, 종료)
         self.island = QFrame(self.container)
         self.island.setFixedSize(120, 26)
         self.island.setStyleSheet("background-color: black; border-radius: 13px;")
@@ -103,61 +109,17 @@ class SelectionView(QWidget):
         self.menu_btn.raise_()
         self.close_btn.raise_()
 
-    def update_model_list(self, models, active_model=None):
-        # 기존 위젯 모두 삭제
-        while self.scroll_layout.count():
-            item = self.scroll_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-
-        if not models:
-            info_label = QLabel("No models found on the Ollama server.\nYou can pull a model using 'ollama pull <model_name>'.")
-            info_label.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none; padding: 20px;")
-            info_label.setAlignment(Qt.AlignCenter)
-            info_label.setWordWrap(True)
-            self.scroll_layout.addWidget(info_label)
-            return
-
-        # 모델 이름순으로 정렬하여 추가
-        for model in sorted(models, key=lambda x: x.get('name', '')):
-            model_name = model.get('name', 'Unknown Model')
-            model_size = model.get('size', 0)
-
-            if model_size > 0:
-                size_gb = round(model_size / (1024**3), 2)
-                subtitle = f"Size: {size_gb} GB"
-            else:
-                subtitle = "Size: Unknown"
-
-            item = MenuListItem("🤖", model_name, subtitle)
-            if active_model == model_name:
-                item.set_active(True)
-            item.clicked.connect(self.model_selected.emit)
-            self.scroll_layout.addWidget(item)
-
-    def set_active_model(self, active_model_name):
-        for i in range(self.scroll_layout.count()):
-            widget = self.scroll_layout.itemAt(i).widget()
-            if isinstance(widget, MenuListItem):
-                is_active = (widget.title_label.text() == active_model_name)
-                widget.set_active(is_active)
-
+    # 6. 창 크기 변경 시 아일랜드 및 버튼 위치 중앙 정렬
     def resizeEvent(self, event):
         super().resizeEvent(event)
         island_x = (self.width() - 120) // 2
-        if hasattr(self, 'island'):
-            self.island.move(island_x, 11)
-        if hasattr(self, 'back_btn'):
-            self.back_btn.move(island_x - 31, 11)
-        if hasattr(self, 'menu_btn'):
-            self.menu_btn.move(island_x + 125, 11)
-        if hasattr(self, 'close_btn'):
-            self.close_btn.move(island_x + 156, 11)
+        if hasattr(self, 'island'): self.island.move(island_x, 11)
+        if hasattr(self, 'back_btn'): self.back_btn.move(island_x - 31, 11)
+        if hasattr(self, 'menu_btn'): self.menu_btn.move(island_x + 125, 11)
+        if hasattr(self, 'close_btn'): self.close_btn.move(island_x + 156, 11)
 
     def show_scrollbar(self, *args):
-        if self.scrollbar_anim.state() == QPropertyAnimation.Running:
-            self.scrollbar_anim.stop()
+        if self.scrollbar_anim.state() == QPropertyAnimation.Running: self.scrollbar_anim.stop()
         self.scroll_effect.setOpacity(1.0)
         self.scroll_timer.start(1500)
 

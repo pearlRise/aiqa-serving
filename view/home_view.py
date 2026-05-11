@@ -1,8 +1,8 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
-from view.common_ui import SmoothScrollArea, GlassFrame, SmoothRoundButton
-from view.menu_ui import IndicatorInfoCell, MenuListItem
+from view.components.common_ui import SmoothScrollArea, GlassFrame, SmoothRoundButton
+from view.components.menu_ui import IndicatorInfoCell, MenuListItem
 
 # 4.1 메인 홈 인터페이스 레이아웃 관리
 class HomeView(QWidget):

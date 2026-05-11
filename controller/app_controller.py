@@ -2,8 +2,8 @@ import atexit
 import time
 from PySide6.QtCore import QObject, QTimer, QEvent
 from PySide6.QtWidgets import QApplication
-from ollama.server_manager import ServerManager
-from ollama.chat_manager import ChatController
+from core.ollama_manager import ServerManager
+from controller.chat_controller import ChatController
 from view.main_window import MainWindow
 
 class AppController(QObject):
