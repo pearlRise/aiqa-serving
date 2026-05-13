@@ -2,7 +2,7 @@ from PySide6.QtWidgets import QWidget, QFrame
 from view.components.ui_round_button import SmoothRoundButton
 
 class DynamicIsland(QWidget):
-    def __init__(self, parent=None, left_text="←", mid_text="≡", right_text="✕"):
+    def __init__(self, parent=None, left_text="i", mid_text="≡", right_text="✕"):
         super().__init__(parent)
         
         self.island = QFrame(self)

@@ -6,34 +6,14 @@ from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_chat_bubble import ChatItem
 from view.components.ui_chat_input import CustomInput
-from view.components.ui_dynamic_island import DynamicIsland
-from view.components.ui_internal_menu import InternalMenu
 
 class ChatView(QWidget):
     def __init__(self):
         super().__init__()
         
-        self.container = QWidget()
-        self.container.setObjectName("MainBody")
-
-        base_layout = QVBoxLayout(self)
-        base_layout.setContentsMargins(0, 0, 0, 0)
-        base_layout.addWidget(self.container)
-        
-        self.container.setStyleSheet("#MainBody { background-color: #000000; border: 1px solid #222; border-radius: 48px; }")        
-        
-        self.main_layout = QVBoxLayout(self.container)
-        self.main_layout.setContentsMargins(0, 0, 0, 10)
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 48, 0, 10)
         self.main_layout.setSpacing(0) 
-
-        self.top_bar = QFrame(self.container)
-        self.top_bar.setFixedHeight(48)
-        self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
-        self.main_layout.addWidget(self.top_bar)
-
-        self.dynamic_island = DynamicIsland(self.container)
-        self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
-        self.back_btn = self.dynamic_island.left_btn
 
         self.scroll = SmoothScrollArea(scrollbar_margin="0px")
         self.scroll.setWidgetResizable(True)
@@ -48,9 +28,6 @@ class ChatView(QWidget):
         self.chat_layout.setAlignment(Qt.AlignTop)
         self.scroll.setWidget(self.chat_content)
         self.main_layout.addWidget(self.scroll, 1)
-
-        self.internal_menu = InternalMenu(self.container)
-        self.dynamic_island.mid_btn.clicked.connect(lambda: self.internal_menu.toggle(self.width()))
 
         self.resize_timer = QTimer(self)
         self.resize_timer.setSingleShot(True)
@@ -139,12 +116,6 @@ class ChatView(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         
-        if hasattr(self, 'dynamic_island'):
-            self.dynamic_island.update_position(self.width())
-            
-        if hasattr(self, 'internal_menu'):
-            self.internal_menu.update_position(self.width())
-            
         if self.width() != self.last_width:
             self.last_width = self.width()
             

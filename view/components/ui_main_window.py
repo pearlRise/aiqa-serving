@@ -1,9 +1,11 @@
-from PySide6.QtWidgets import QMainWindow, QWidget
+from PySide6.QtWidgets import QMainWindow, QWidget, QFrame
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
 from view.window.home_view import HomeView
 from view.window.chat_view import ChatView
 from view.window.selection_view import SelectionView
 from view.window.template_view import TemplateView
+from view.components.ui_dynamic_island import DynamicIsland
+from view.components.ui_global_menu import GlobalMenu
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -14,7 +16,18 @@ class MainWindow(QMainWindow):
         self.setAttribute(Qt.WA_TranslucentBackground)
 
         self.container = QWidget(self)
+        self.container.setObjectName("MainFrame")
+        self.container.setStyleSheet("""
+            #MainFrame {
+                background-color: #000000;
+                border: 1px solid #222;
+                border-radius: 48px;
+            }
+        """)
         self.setCentralWidget(self.container)
+
+        self.top_bar = QFrame(self.container)
+        self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
 
         self.home_view = HomeView()
         self.home_view.setParent(self.container)
@@ -25,6 +38,17 @@ class MainWindow(QMainWindow):
         self.template_view = TemplateView()
         self.template_view.setParent(self.container)
 
+        self.dynamic_island = DynamicIsland(self.container)
+        self.global_menu = GlobalMenu(self.container)
+        
+        self.dynamic_island.right_btn.clicked.connect(self.close)
+        self.dynamic_island.mid_btn.clicked.connect(lambda: self.global_menu.toggle(self.width(), self.height()))
+        self.dynamic_island.left_btn.clicked.connect(self.handle_left_btn_clicked)
+
+        self.top_bar.raise_()
+        self.dynamic_island.raise_()
+        self.global_menu.raise_()
+
         self.old_pos = None
         self.logical_pos = None
         self.is_chat_active = False
@@ -34,14 +58,26 @@ class MainWindow(QMainWindow):
         self.resize_margin = 10
         self.anim_group = None
 
+    def handle_left_btn_clicked(self):
+        if self.is_chat_active or self.is_selection_active or self.is_template_active:
+            self.slide_to_home()
+        else:
+            pass # TODO: Info 모달 팝업 등을 연동할 예정
+
     def resizeEvent(self, event):
         super().resizeEvent(event)
         w, h = self.width(), self.height()
         self.container.resize(w, h)
+        self.top_bar.setGeometry(1, 1, w - 2, 48)
         self.home_view.resize(w, h)
         self.chat_view.resize(w, h)
         self.selection_view.resize(w, h)
         self.template_view.resize(w, h)
+
+        if hasattr(self, 'dynamic_island'):
+            self.dynamic_island.update_position(w)
+        if hasattr(self, 'global_menu'):
+            self.global_menu.update_position(w, h)
 
         if self.is_chat_active:
             self.home_view.move(-w, 0); self.chat_view.move(0, 0); self.selection_view.move(w, 0); self.template_view.move(w, 0)
@@ -55,6 +91,7 @@ class MainWindow(QMainWindow):
     def slide_to_chat(self):
         if self.is_chat_active: return
         self.is_chat_active = True
+        self.dynamic_island.left_btn.setText("←")
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         
@@ -64,6 +101,7 @@ class MainWindow(QMainWindow):
 
     def slide_to_home(self):
         if not (self.is_chat_active or self.is_selection_active or self.is_template_active): return
+        self.dynamic_island.left_btn.setText("i")
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(0, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)
@@ -82,6 +120,7 @@ class MainWindow(QMainWindow):
 
     def slide_to_selection(self):
         self.is_selection_active = True
+        self.dynamic_island.left_btn.setText("←")
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(-w, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)
@@ -90,6 +129,7 @@ class MainWindow(QMainWindow):
 
     def slide_to_template(self):
         self.is_template_active = True
+        self.dynamic_island.left_btn.setText("←")
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(-w, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)

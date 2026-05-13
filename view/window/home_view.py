@@ -7,7 +7,6 @@ from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_indicator import IndicatorInfoCell
 from view.components.ui_menu_item import MenuListItem
 from view.configuration.menu_list import MENUS_OLLAMA, MENUS_MLX, MENUS_BASIC
-from view.components.ui_dynamic_island import DynamicIsland
 from view.configuration.app_texts import BANNER_GREETING, BANNER_SUBTITLE, ENGINE_TITLE, ENGINE_SUBTITLE
 
 class HomeView(QWidget):
@@ -17,29 +16,10 @@ class HomeView(QWidget):
     template_requested = Signal()
     def __init__(self):
         super().__init__()
-        self.container = QWidget()
-        self.container.setObjectName("MainBody")
         
-        base_layout = QVBoxLayout(self)
-        base_layout.setContentsMargins(0, 0, 0, 0)
-        base_layout.addWidget(self.container)
-        
-        self.container.setStyleSheet("""
-            #MainBody { 
-                background-color: #000000; 
-                border: 1px solid #222; 
-                border-radius: 48px; 
-            }
-        """)        
-        
-        self.main_layout = QVBoxLayout(self.container)
-        self.main_layout.setContentsMargins(0, 0, 0, 21) 
+        self.main_layout = QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 48, 0, 21) 
         self.main_layout.setSpacing(0)
-
-        self.top_bar = QFrame(self.container)
-        self.top_bar.setFixedHeight(48)
-        self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
-        self.main_layout.addWidget(self.top_bar)
 
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -193,14 +173,6 @@ class HomeView(QWidget):
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
-
-        self.dynamic_island = DynamicIsland(self.container, left_text="!", mid_text="?")
-        self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if hasattr(self, 'dynamic_island'):
-            self.dynamic_island.update_position(self.width())
 
     def update_engine_menus(self, engine_name):
         if engine_name == "Ollama":

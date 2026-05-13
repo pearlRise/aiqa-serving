@@ -34,7 +34,6 @@ class AppController(QObject):
     def _connect_signals(self):
         self.window.chat_view.send_btn.clicked.connect(self.handle_send_message)
         self.window.chat_view.input_field.returnPressed.connect(self.handle_send_message)
-        self.window.chat_view.back_btn.clicked.connect(self.window.slide_to_home)
         
         self.chat_logic.thinking_started.connect(lambda: self.window.chat_view.add_chat_bubble("{...}", is_me=False, sender_name="Gemma"))
         self.chat_logic.chunk_delivered.connect(self.window.chat_view.update_last_bubble_stream)
@@ -46,8 +45,6 @@ class AppController(QObject):
         self.window.home_view.engine_toggle_btn.clicked.connect(self.toggle_engine)
         
         self.window.selection_view.model_selected.connect(self.handle_model_selection)
-        self.window.selection_view.back_requested.connect(self.window.slide_to_home)
-        self.window.template_view.back_requested.connect(self.window.slide_to_home)
         
         self.window.close_requested = self.handle_close_event
 
