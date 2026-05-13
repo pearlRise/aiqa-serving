@@ -134,12 +134,12 @@ class HomeView(QWidget):
         engine_title_layout.addWidget(self.engine_title)
         engine_title_layout.addWidget(self.engine_sub)
         
-        self.engine_toggle_btn = QPushButton("Ollama")
+        self.engine_toggle_btn = QPushButton("MLX")
         self.engine_toggle_btn.setFixedSize(80, 32)
         self.engine_toggle_btn.setCursor(Qt.PointingHandCursor)
         self.engine_toggle_btn.setStyleSheet("""
-            QPushButton { background-color: #007AFF; color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }
-            QPushButton:hover { background-color: #0051A8; }
+            QPushButton { background-color: #FF9500; color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }
+            QPushButton:hover { background-color: #CC7700; }
         """)
         
         engine_layout.addLayout(engine_title_layout)
@@ -169,7 +169,7 @@ class HomeView(QWidget):
         self._build_basic_menus()
 
         self.current_server_status = "stopped"
-        self.update_engine_menus("Ollama")
+        self.update_engine_menus("MLX")
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)

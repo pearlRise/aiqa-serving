@@ -17,7 +17,7 @@ class AppController(QObject):
         
         self.is_server_starting = False
         self.is_server_stopping = False
-        self.current_engine = "Ollama"
+        self.current_engine = "MLX"
 
         self._connect_signals()
         
