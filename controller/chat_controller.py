@@ -2,7 +2,6 @@ from PySide6.QtCore import QObject, Signal, QThread
 
 class ChatWorker(QThread):
     chunk_received = Signal(str)
-    finished = Signal()
 
     def __init__(self, ollama_manager, model_name, prompt):
         super().__init__()
@@ -13,12 +12,10 @@ class ChatWorker(QThread):
     def run(self):
         if not self.ollama.is_running():
             self.chunk_received.emit("🧐 Please run server first!")
-            self.finished.emit()
             return
 
         for chunk in self.ollama.chat_stream(self.model_name, self.prompt):
             self.chunk_received.emit(chunk)
-        self.finished.emit()
 
 class ChatController(QObject):
     thinking_started = Signal()

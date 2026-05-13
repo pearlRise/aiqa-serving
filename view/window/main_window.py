@@ -1,9 +1,9 @@
 from PySide6.QtWidgets import QMainWindow, QWidget
 from PySide6.QtCore import Qt, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QPoint
-from view.home_view import HomeView
-from view.chat_view import ChatView
-from view.selection_view import SelectionView
-from view.template_view import TemplateView
+from view.window.home_view import HomeView
+from view.window.chat_view import ChatView
+from view.window.selection_view import SelectionView
+from view.window.template_view import TemplateView
 
 class MainWindow(QMainWindow):
     def __init__(self):

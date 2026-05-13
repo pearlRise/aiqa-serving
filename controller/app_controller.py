@@ -4,7 +4,7 @@ from PySide6.QtCore import QObject, QTimer, QEvent
 from PySide6.QtWidgets import QApplication
 from core.ollama_manager import ServerManager
 from controller.chat_controller import ChatController
-from view.main_window import MainWindow
+from view.window.main_window import MainWindow
 
 class AppController(QObject):
     def __init__(self):
@@ -18,6 +18,7 @@ class AppController(QObject):
         self.is_server_starting = False
         self.is_server_stopping = False
         self.current_engine = "Ollama"
+        self.mlx_active_model = None
 
         self._connect_signals()
         
@@ -72,16 +73,30 @@ class AppController(QObject):
             self.window.chat_view.input_field.clear()
 
     def handle_model_selection(self, model_name):
-        if self.ollama.active_model == model_name: self.ollama.unload_model(model_name)
-        else: self.ollama.load_model(model_name)
-        active = self.ollama.active_model
-        self.window.selection_view.set_active_model(active)
-        self.window.home_view.update_model_status(active)
+        if self.current_engine == "MLX":
+            if self.mlx_active_model == model_name: self.mlx_active_model = None
+            else: self.mlx_active_model = model_name
+            active = self.mlx_active_model
+            self.window.selection_view.set_active_model(active)
+            self.window.home_view.update_model_status(active)
+        else:
+            if self.ollama.active_model == model_name: self.ollama.unload_model(model_name)
+            else: self.ollama.load_model(model_name)
+            active = self.ollama.active_model
+            self.window.selection_view.set_active_model(active)
+            self.window.home_view.update_model_status(active)
 
     def slide_to_selection(self):
-        if not self.ollama.is_running(): return
         if self.window.is_chat_active or self.window.is_selection_active: return
-        self.window.selection_view.update_model_list(self.ollama.get_local_models(), self.ollama.active_model)
+        
+        if self.current_engine == "Ollama":
+            if not self.ollama.is_running(): return
+            self.window.selection_view.update_model_list(self.ollama.get_local_models(), self.ollama.active_model)
+        else:
+            # MLX 전용 Dummy 리스트 임시 연동 (추후 MLX 매니저와 연결)
+            mlx_dummies = [{"name": "mlx-community/Llama-3-8B", "size": 0}]
+            self.window.selection_view.update_model_list(mlx_dummies, self.mlx_active_model)
+            
         self.window.slide_to_selection()
 
     def toggle_ollama_serve(self):
@@ -105,6 +120,11 @@ class AppController(QObject):
             print("MLX Serve mode: Logic not yet implemented.")
 
     def check_ollama_status(self):
+        if self.current_engine == "MLX":
+            self.update_server_ui("stopped")
+            self.window.home_view.update_model_status(self.mlx_active_model)
+            return
+
         if self.ollama.is_running():
             self.is_server_starting = False
             self.update_server_ui("loading" if self.is_server_stopping else "running")

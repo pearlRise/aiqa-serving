@@ -1,18 +1,13 @@
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel
+from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor, QFont
 from view.components.ui_common import GlassFrame
-
-class IndicatorInfoCell(QFrame):
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        self.setStyleSheet("IndicatorInfoCell { background: transparent; border: none; border-radius: 0px; }")
 
 class MenuListItem(GlassFrame):
     clicked = Signal(str)
     def __init__(self, icon, title, subtitle):
         super().__init__(radius=16)
-        self.setFixedHeight(72)
+        self.setFixedHeight(64)
         self.setCursor(QCursor(Qt.PointingHandCursor))
         self.is_active = False
         self.setObjectName("MenuItem")
@@ -23,7 +18,7 @@ class MenuListItem(GlassFrame):
         self._apply_bg(self.default_bg)
 
         layout = QHBoxLayout(self)
-        layout.setContentsMargins(16, 12, 16, 12)
+        layout.setContentsMargins(16, 8, 16, 8)
         layout.setSpacing(16)
         self.icon_label = QLabel(icon)
         self.icon_label.setFont(QFont("Apple Color Emoji", 24))

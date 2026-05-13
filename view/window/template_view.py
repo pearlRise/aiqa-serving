@@ -1,14 +1,13 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect, QLabel
+    QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from view.components.ui_common import SmoothScrollArea, SmoothRoundButton
-from view.components.ui_menu import MenuListItem
+from view.components.ui_menuItem import MenuListItem
 from view.components.ui_dynamicIsland import DynamicIsland
 
-class SelectionView(QWidget):
+class TemplateView(QWidget):
     back_requested = Signal()
-    model_selected = Signal(str)
 
     def __init__(self):
         super().__init__()
@@ -79,6 +78,9 @@ class SelectionView(QWidget):
         self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
         
+        for i in range(1, 11):
+            item = MenuListItem("📝", f"Template Menu {i}", "This is a dummy description.")
+            self.scroll_layout.addWidget(item)
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
@@ -87,52 +89,13 @@ class SelectionView(QWidget):
         self.dynamic_island.left_btn.clicked.connect(lambda: self.back_requested.emit())
         self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
 
-    def update_model_list(self, models, active_model=None):
-        while self.scroll_layout.count():
-            item = self.scroll_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-
-        if not models:
-            info_label = QLabel("No models found on the Ollama server.\nYou can pull a model using 'ollama pull <model_name>'.")
-            info_label.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none; padding: 20px;")
-            info_label.setAlignment(Qt.AlignCenter)
-            info_label.setWordWrap(True)
-            self.scroll_layout.addWidget(info_label)
-            return
-
-        for model in sorted(models, key=lambda x: x.get('name', '')):
-            model_name = model.get('name', 'Unknown Model')
-            model_size = model.get('size', 0)
-
-            if model_size > 0:
-                size_gb = round(model_size / (1024**3), 2)
-                subtitle = f"Size: {size_gb} GB"
-            else:
-                subtitle = "Size: Unknown"
-
-            item = MenuListItem("🤖", model_name, subtitle)
-            if active_model == model_name:
-                item.set_active(True)
-            item.clicked.connect(self.model_selected.emit)
-            self.scroll_layout.addWidget(item)
-
-    def set_active_model(self, active_model_name):
-        for i in range(self.scroll_layout.count()):
-            widget = self.scroll_layout.itemAt(i).widget()
-            if isinstance(widget, MenuListItem):
-                is_active = (widget.title_label.text() == active_model_name)
-                widget.set_active(is_active)
-
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if hasattr(self, 'dynamic_island'):
+        if hasattr(self, 'dynamic_island'): 
             self.dynamic_island.update_position(self.width())
 
     def show_scrollbar(self, *args):
-        if self.scrollbar_anim.state() == QPropertyAnimation.Running:
-            self.scrollbar_anim.stop()
+        if self.scrollbar_anim.state() == QPropertyAnimation.Running: self.scrollbar_anim.stop()
         self.scroll_effect.setOpacity(1.0)
         self.scroll_timer.start(1500)
 

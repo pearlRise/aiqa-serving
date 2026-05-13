@@ -1,8 +1,9 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton, QStackedWidget)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
 from view.components.ui_common import SmoothScrollArea, GlassFrame, SmoothRoundButton
-from view.components.ui_menu import IndicatorInfoCell, MenuListItem
+from view.components.ui_indicator import IndicatorInfoCell
+from view.components.ui_menuItem import MenuListItem
 from view.configuration.menu_list_ollama import OLLAMA_MENUS
 from view.configuration.menu_list_mlx import MLX_MENUS
 from view.components.ui_dynamicIsland import DynamicIsland
@@ -83,7 +84,7 @@ class HomeView(QWidget):
         self.scroll_layout.setAlignment(Qt.AlignTop)
 
         self.banner = GlassFrame(radius=16)
-        self.banner.setFixedHeight(80)
+        self.banner.setFixedHeight(128)
         banner_layout = QHBoxLayout(self.banner)
         banner_layout.setContentsMargins(20, 0, 20, 0)
         
@@ -196,10 +197,24 @@ class HomeView(QWidget):
         
         self.scroll_layout.addWidget(self.engine_frame)
         
-        self.menu_layout = QVBoxLayout()
-        self.menu_layout.setSpacing(12)
+        self.menu_stack = QStackedWidget()
+        self.scroll_layout.addWidget(self.menu_stack)
         
-        self.scroll_layout.addLayout(self.menu_layout)
+        self.ollama_menu_widget = QWidget()
+        self.ollama_menu_layout = QVBoxLayout(self.ollama_menu_widget)
+        self.ollama_menu_layout.setContentsMargins(0, 0, 0, 0)
+        self.ollama_menu_layout.setSpacing(12)
+        
+        self.mlx_menu_widget = QWidget()
+        self.mlx_menu_layout = QVBoxLayout(self.mlx_menu_widget)
+        self.mlx_menu_layout.setContentsMargins(0, 0, 0, 0)
+        self.mlx_menu_layout.setSpacing(12)
+        
+        self.menu_stack.addWidget(self.ollama_menu_widget)
+        self.menu_stack.addWidget(self.mlx_menu_widget)
+        
+        self._build_ollama_menus()
+        self._build_mlx_menus()
 
         self.current_server_status = "stopped"
         self.update_engine_menus("Ollama")
@@ -225,36 +240,68 @@ class HomeView(QWidget):
         self.scrollbar_anim.start()
 
     def update_engine_menus(self, engine_name):
-        while self.menu_layout.count():
-            item = self.menu_layout.takeAt(0)
-            widget = item.widget()
-            if widget:
-                widget.deleteLater()
-                
-        menus = OLLAMA_MENUS if engine_name == "Ollama" else MLX_MENUS
-        
-        for icon, title, sub, action in menus:
-            item = MenuListItem(icon, title, sub)
-            
-            if action == "serve":
-                self.serve_item = item
-                item.clicked.connect(lambda _: self.serve_requested.emit())
-            elif action == "chat":
-                self.chat_item = item
-                self.chat_effect = QGraphicsOpacityEffect()
-                self.chat_item.setGraphicsEffect(self.chat_effect)
-                item.clicked.connect(lambda _: self.chat_requested.emit())
-            elif action == "selection":
-                self.choose_model_item = item
-                self.choose_model_effect = QGraphicsOpacityEffect()
-                self.choose_model_item.setGraphicsEffect(self.choose_model_effect)
-                item.clicked.connect(lambda _: self.selection_requested.emit())
-            elif action == "template":
-                item.clicked.connect(lambda _: self.template_requested.emit())
-                
-            self.menu_layout.addWidget(item)
-            
+        if engine_name == "Ollama":
+            self.menu_stack.setCurrentWidget(self.ollama_menu_widget)
+        else:
+            self.menu_stack.setCurrentWidget(self.mlx_menu_widget)
         self.update_server_status(getattr(self, 'current_server_status', 'stopped'))
+
+    def _build_ollama_menus(self):
+        action_map = {
+            "serve": self._setup_ollama_serve,
+            "chat": self._setup_ollama_chat,
+            "selection": self._setup_ollama_selection,
+            "template": lambda item: item.clicked.connect(lambda _: self.template_requested.emit())
+        }
+        
+        for icon, title, sub, action in OLLAMA_MENUS:
+            item = MenuListItem(icon, title, sub)
+            if action in action_map:
+                action_map[action](item)
+            self.ollama_menu_layout.addWidget(item)
+
+    def _setup_ollama_serve(self, item):
+        self.ollama_serve_item = item
+        item.clicked.connect(lambda _: self.serve_requested.emit())
+        
+    def _setup_ollama_chat(self, item):
+        self.ollama_chat_item = item
+        self.ollama_chat_effect = QGraphicsOpacityEffect()
+        self.ollama_chat_item.setGraphicsEffect(self.ollama_chat_effect)
+        item.clicked.connect(lambda _: self.chat_requested.emit())
+        
+    def _setup_ollama_selection(self, item):
+        self.ollama_choose_model_item = item
+        self.ollama_choose_model_effect = QGraphicsOpacityEffect()
+        self.ollama_choose_model_item.setGraphicsEffect(self.ollama_choose_model_effect)
+        item.clicked.connect(lambda _: self.selection_requested.emit())
+
+    def _build_mlx_menus(self):
+        # 동일한 방식으로 MLX 메뉴도 깔끔하게 매핑 가능합니다.
+        action_map = {
+            "serve": lambda item: (setattr(self, 'mlx_serve_item', item), item.clicked.connect(lambda _: self.serve_requested.emit())),
+            "chat": self._setup_mlx_chat,
+            "selection": self._setup_mlx_selection,
+            "template": lambda item: item.clicked.connect(lambda _: self.template_requested.emit())
+        }
+        
+        for icon, title, sub, action in MLX_MENUS:
+            item = MenuListItem(icon, title, sub)
+            if action in action_map:
+                action_map[action](item)
+            self.mlx_menu_layout.addWidget(item)
+
+    def _setup_mlx_chat(self, item):
+        self.mlx_chat_item = item
+        self.mlx_chat_effect = QGraphicsOpacityEffect()
+        self.mlx_chat_item.setGraphicsEffect(self.mlx_chat_effect)
+        item.clicked.connect(lambda _: self.chat_requested.emit())
+
+    def _setup_mlx_selection(self, item):
+        self.mlx_choose_model_item = item
+        self.mlx_choose_model_effect = QGraphicsOpacityEffect()
+        self.mlx_choose_model_item.setGraphicsEffect(self.mlx_choose_model_effect)
+        item.clicked.connect(lambda _: self.selection_requested.emit())
 
     def update_server_status(self, status):
         self.current_server_status = status
@@ -274,15 +321,23 @@ class HomeView(QWidget):
             self.server_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("⌛️")
 
-        if hasattr(self, 'choose_model_item'):
-            is_running = (status == "running")
-            self.choose_model_item.setEnabled(is_running)
-            self.choose_model_effect.setOpacity(1.0 if is_running else 0.4)
+        is_running = (status == "running")
+        
+        if hasattr(self, 'ollama_choose_model_item'):
+            self.ollama_choose_model_item.setEnabled(is_running)
+            self.ollama_choose_model_effect.setOpacity(1.0 if is_running else 0.4)
             
-        if hasattr(self, 'chat_item'):
-            is_running = (status == "running")
-            self.chat_item.setEnabled(is_running)
-            self.chat_effect.setOpacity(1.0 if is_running else 0.4)
+        if hasattr(self, 'ollama_chat_item'):
+            self.ollama_chat_item.setEnabled(is_running)
+            self.ollama_chat_effect.setOpacity(1.0 if is_running else 0.4)
+
+        if hasattr(self, 'mlx_choose_model_item'):
+            self.mlx_choose_model_item.setEnabled(True)
+            self.mlx_choose_model_effect.setOpacity(1.0)
+            
+        if hasattr(self, 'mlx_chat_item'):
+            self.mlx_chat_item.setEnabled(True)
+            self.mlx_chat_effect.setOpacity(1.0)
 
     def update_model_status(self, model_name):
         if not hasattr(self, 'model_status_label'): return
