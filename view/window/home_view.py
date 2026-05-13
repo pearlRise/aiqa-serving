@@ -7,7 +7,7 @@ from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_indicator import IndicatorInfoCell
 from view.components.ui_menu_item import MenuListItem
 from view.configuration.menu_list import MENUS_OLLAMA, MENUS_MLX, MENUS_BASIC
-from view.components.ui_dynamicIsland import DynamicIsland
+from view.components.ui_dynamic_island import DynamicIsland
 from view.configuration.app_texts import BANNER_GREETING, BANNER_SUBTITLE, ENGINE_TITLE, ENGINE_SUBTITLE
 
 class HomeView(QWidget):

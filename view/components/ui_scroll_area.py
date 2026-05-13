@@ -9,7 +9,6 @@ class SmoothScrollArea(QScrollArea):
         self.anim.setEasingCurve(QEasingCurve.OutCubic)
         self.anim.setDuration(400)
 
-        # 자동 숨김 스크롤바 애니메이션 기능 캡슐화
         self.scroll_effect = QGraphicsOpacityEffect(self.verticalScrollBar())
         self.verticalScrollBar().setGraphicsEffect(self.scroll_effect)
         self.scroll_effect.setOpacity(0.0)

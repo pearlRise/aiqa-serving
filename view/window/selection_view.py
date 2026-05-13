@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_menu_item import MenuListItem
-from view.components.ui_dynamicIsland import DynamicIsland
+from view.components.ui_dynamic_island import DynamicIsland
 from view.configuration.app_texts import NO_MODELS_MSG, UNKNOWN_MODEL_NAME, UNKNOWN_MODEL_SIZE
 
 class SelectionView(QWidget):

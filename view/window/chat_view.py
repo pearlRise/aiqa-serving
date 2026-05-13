@@ -6,7 +6,7 @@ from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_chat_bubble import ChatItem
 from view.components.ui_chat_input import CustomInput
-from view.components.ui_dynamicIsland import DynamicIsland
+from view.components.ui_dynamic_island import DynamicIsland
 from view.components.ui_internal_menu import InternalMenu
 
 class ChatView(QWidget):
@@ -33,7 +33,7 @@ class ChatView(QWidget):
 
         self.dynamic_island = DynamicIsland(self.container)
         self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
-        self.back_btn = self.dynamic_island.left_btn # AppController 와의 호환성 유지
+        self.back_btn = self.dynamic_island.left_btn
 
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)

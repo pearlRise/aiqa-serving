@@ -1,5 +1,5 @@
-from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QGraphicsOpacityEffect, QLabel
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
+from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QLabel
+from PySide6.QtCore import Qt
 from view.components.ui_scroll_area import SmoothScrollArea
 
 class InternalMenu(QFrame):
@@ -29,7 +29,7 @@ class InternalMenu(QFrame):
                 height: 0px; background: none;
             }
         """)
-
+        
         self.content = QWidget()
         self.content.setStyleSheet("background: transparent;")
         self.layout = QVBoxLayout(self.content)

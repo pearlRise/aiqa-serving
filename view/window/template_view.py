@@ -5,7 +5,7 @@ from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_menu_item import MenuListItem
-from view.components.ui_dynamicIsland import DynamicIsland
+from view.components.ui_dynamic_island import DynamicIsland
 
 class TemplateView(QWidget):
     back_requested = Signal()

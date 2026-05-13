@@ -19,7 +19,6 @@ class DynamicIsland(QWidget):
         self.right_btn = SmoothRoundButton(right_text, self)
         self.right_btn.setStyleSheet("QPushButton { background: transparent; font-size: 14px; font-weight: bold; color: white; border: none; padding-bottom: 2px; }")
         
-        # 부모 위젯 내부에서의 절대 좌표 고정
         self.island.move(31, 0)
         self.left_btn.move(0, 0)
         self.mid_btn.move(156, 0)
@@ -29,6 +28,5 @@ class DynamicIsland(QWidget):
 
     def update_position(self, parent_width):
         island_x = (parent_width - 120) // 2
-        # 화면 중앙을 기준으로 계산된 오프셋 적용
         self.move(island_x - 31, 11)
         self.raise_()
