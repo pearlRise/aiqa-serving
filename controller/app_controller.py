@@ -110,7 +110,7 @@ class AppController(QObject):
     def cancel_model_loading(self):
         if self.model_worker and self.model_worker.isRunning():
             self.model_worker.is_cancelled = True
-            self.window.dynamic_island.show_progress("Cancelling...")
+            self.window.dynamic_island.show_progress("model_worker", "Cancelling...")
 
     def handle_send_message(self):
         text = self.window.chat_view.input_field.toPlainText().strip()
@@ -154,11 +154,11 @@ class AppController(QObject):
             self.window.selection_view.set_active_model(target_model if target_model else "Unselected", is_loading=True)
             
             initial_text = "Unloading..." if action in ['unload', 'switch'] else "Loading Model..."
-            self.window.dynamic_island.show_progress(initial_text)
+            self.window.dynamic_island.show_progress("model_worker", initial_text)
             QApplication.processEvents()
 
             self.model_worker = ModelWorker(self.ollama, action, target_model, current_model)
-            self.model_worker.progress_updated.connect(self.window.dynamic_island.show_progress)
+            self.model_worker.progress_updated.connect(lambda text: self.window.dynamic_island.show_progress("model_worker", text))
             self.model_worker.finished.connect(self._on_model_op_finished)
             self.model_worker.start()
         else:
@@ -174,7 +174,11 @@ class AppController(QObject):
             self.check_ollama_status()
 
     def _on_model_op_finished(self):
-        self.window.dynamic_island.hide_progress()
+        if self.model_worker and self.model_worker.is_cancelled:
+            self.window.dynamic_island.hide_progress("model_worker", end_text="Cancelled", fill_bar=True)
+        else:
+            self.window.dynamic_island.hide_progress("model_worker")
+            
         active = self.ollama.active_model
         self.window.selection_view.set_active_model(active if active else "Unselected", is_loading=False)
         self.window.home_view.update_model_status(active, is_loading=False)
