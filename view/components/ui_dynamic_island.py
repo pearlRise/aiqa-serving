@@ -69,6 +69,7 @@ class DynamicIsland(QWidget):
     def show_progress(self, task_id, text):
         if task_id in self.task_info and 'timer' in self.task_info[task_id]:
             self.task_info[task_id]['timer'].stop()
+            self.task_info[task_id]['timer'].deleteLater()
 
         if task_id in self.active_tasks:
             self.active_tasks.remove(task_id)
@@ -82,9 +83,8 @@ class DynamicIsland(QWidget):
         self._update_display()
 
     def hide_progress(self, task_id, end_text=None, fill_bar=False):
-        if task_id not in self.task_info:
-            return
-            
+        if task_id not in self.task_info: return
+        
         if end_text:
             self.task_info[task_id]['text'] = end_text
             self.task_info[task_id]['fill_bar'] = fill_bar
@@ -92,8 +92,10 @@ class DynamicIsland(QWidget):
             self._update_display()
 
         elapsed = time.time() - self.task_info[task_id]['start_time']
-        if elapsed < 1.5:
-            delay_ms = int((1.5 - elapsed) * 1000)
+        is_top = (self.active_tasks and self.active_tasks[-1] == task_id)
+        
+        if elapsed < 1.0 and is_top:
+            delay_ms = int((1.0 - elapsed) * 1000)
             timer = QTimer(self)
             timer.setSingleShot(True)
             timer.timeout.connect(lambda t=task_id: self._remove_task(t))
@@ -108,6 +110,7 @@ class DynamicIsland(QWidget):
         if task_id in self.task_info:
             if 'timer' in self.task_info[task_id]:
                 self.task_info[task_id]['timer'].stop()
+                self.task_info[task_id]['timer'].deleteLater()
             del self.task_info[task_id]
         self._update_display()
         

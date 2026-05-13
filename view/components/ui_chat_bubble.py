@@ -52,7 +52,7 @@ class ChatItem(QWidget):
         font = self.bubble.font(); font.setPixelSize(13); self.bubble.setFont(font)
         self.doc = self.bubble.document(); self.doc.setDefaultFont(font); self.doc.setDocumentMargin(0)
         option = QTextOption(); option.setWrapMode(QTextOption.WrapAnywhere); self.doc.setDefaultTextOption(option)
-        self.bubble.setPlainText(text); self.doc.setTextWidth(10000)
+        self.bubble.setPlainText(text); self.doc.setTextWidth(-1)
         self.pure_ideal_width = math.ceil(self.doc.idealWidth())
         self.bg_layout.addWidget(self.bubble)
         self.time_label = QLabel(datetime.now().strftime("%H:%M"))
@@ -80,4 +80,4 @@ class ChatItem(QWidget):
         self.setFixedHeight(self.main_layout.sizeHint().height())
         
     def remove_tail_and_time(self): self.bg_frame.has_tail = False; self.bg_frame.update(); self.time_label.hide()
-    def update_text(self, text): self.bubble.setPlainText(text); self.doc.setTextWidth(10000); self.pure_ideal_width = math.ceil(self.doc.idealWidth())
+    def update_text(self, text): self.bubble.setPlainText(text); self.doc.setTextWidth(-1); self.pure_ideal_width = math.ceil(self.doc.idealWidth())

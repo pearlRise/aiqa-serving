@@ -159,6 +159,9 @@ class HomeView(QWidget):
             QPushButton:hover { background-color: #CC7700; }
         """)
         
+        self.engine_toggle_effect = QGraphicsOpacityEffect()
+        self.engine_toggle_btn.setGraphicsEffect(self.engine_toggle_effect)
+
         engine_layout.addLayout(engine_title_layout)
         engine_layout.addStretch()
         engine_layout.addWidget(self.engine_toggle_btn)
@@ -208,6 +211,10 @@ class HomeView(QWidget):
             if hasattr(self, 'server_cell'):
                 self.server_cell.setEnabled(True)
                 self.server_cell_effect.setOpacity(1.0)
+            if hasattr(self, 'engine_toggle_btn'):
+                is_idle = (status == "stopped")
+                self.engine_toggle_btn.setEnabled(is_idle)
+                self.engine_toggle_effect.setOpacity(1.0 if is_idle else 0.4)
         else:
             if hasattr(self, 'model_cell'):
                 self.model_cell.setEnabled(True)
@@ -215,6 +222,10 @@ class HomeView(QWidget):
             if hasattr(self, 'server_cell'):
                 self.server_cell.setEnabled(has_model)
                 self.server_cell_effect.setOpacity(1.0 if has_model else 0.4)
+            if hasattr(self, 'engine_toggle_btn'):
+                is_idle = (status == "stopped")
+                self.engine_toggle_btn.setEnabled(is_idle)
+                self.engine_toggle_effect.setOpacity(1.0 if is_idle else 0.4)
 
     def update_model_status(self, model_name, is_loading=False):
         if not hasattr(self, 'model_status_label'): return

@@ -88,16 +88,25 @@ class MainWindow(QMainWindow):
         else:
             self.home_view.move(0, 0); self.chat_view.move(w, 0); self.selection_view.move(w, 0); self.template_view.move(w, 0)
 
-    def slide_to_chat(self):
-        if self.is_chat_active: return
-        self.is_chat_active = True
+    def _slide_to_view(self, target_view, state_attr):
+        if getattr(self, state_attr): return
+        setattr(self, state_attr, True)
         self.dynamic_island.left_btn.setText("←")
         self.anim_group = QParallelAnimationGroup()
         w = self.width()
         
         anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(-w, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)
-        anim_chat = QPropertyAnimation(self.chat_view, b"pos"); anim_chat.setEndValue(QPoint(0, 0)); anim_chat.setEasingCurve(QEasingCurve.InOutQuart); anim_chat.setDuration(450)
-        self.anim_group.addAnimation(anim_home); self.anim_group.addAnimation(anim_chat); self.anim_group.start()
+        anim_target = QPropertyAnimation(target_view, b"pos"); anim_target.setEndValue(QPoint(0, 0)); anim_target.setEasingCurve(QEasingCurve.InOutQuart); anim_target.setDuration(450)
+        self.anim_group.addAnimation(anim_home); self.anim_group.addAnimation(anim_target); self.anim_group.start()
+
+    def slide_to_chat(self):
+        self._slide_to_view(self.chat_view, 'is_chat_active')
+
+    def slide_to_selection(self):
+        self._slide_to_view(self.selection_view, 'is_selection_active')
+
+    def slide_to_template(self):
+        self._slide_to_view(self.template_view, 'is_template_active')
 
     def slide_to_home(self):
         if not (self.is_chat_active or self.is_selection_active or self.is_template_active): return
@@ -107,34 +116,14 @@ class MainWindow(QMainWindow):
         anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(0, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)
         self.anim_group.addAnimation(anim_home)
 
-        if self.is_chat_active:
-            self.is_chat_active = False
-            anim_chat = QPropertyAnimation(self.chat_view, b"pos"); anim_chat.setEndValue(QPoint(w, 0)); anim_chat.setEasingCurve(QEasingCurve.InOutQuart); anim_chat.setDuration(450); self.anim_group.addAnimation(anim_chat)
-        if self.is_selection_active:
-            self.is_selection_active = False
-            anim_sel = QPropertyAnimation(self.selection_view, b"pos"); anim_sel.setEndValue(QPoint(w, 0)); anim_sel.setEasingCurve(QEasingCurve.InOutQuart); anim_sel.setDuration(450); self.anim_group.addAnimation(anim_sel)
-        if self.is_template_active:
-            self.is_template_active = False
-            anim_tpl = QPropertyAnimation(self.template_view, b"pos"); anim_tpl.setEndValue(QPoint(w, 0)); anim_tpl.setEasingCurve(QEasingCurve.InOutQuart); anim_tpl.setDuration(450); self.anim_group.addAnimation(anim_tpl)
+        views_flags = [(self.chat_view, 'is_chat_active'), (self.selection_view, 'is_selection_active'), (self.template_view, 'is_template_active')]
+        for view, flag in views_flags:
+            if getattr(self, flag):
+                setattr(self, flag, False)
+                anim = QPropertyAnimation(view, b"pos"); anim.setEndValue(QPoint(w, 0)); anim.setEasingCurve(QEasingCurve.InOutQuart); anim.setDuration(450)
+                self.anim_group.addAnimation(anim)
+
         self.anim_group.start()
-
-    def slide_to_selection(self):
-        self.is_selection_active = True
-        self.dynamic_island.left_btn.setText("←")
-        self.anim_group = QParallelAnimationGroup()
-        w = self.width()
-        anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(-w, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)
-        anim_sel = QPropertyAnimation(self.selection_view, b"pos"); anim_sel.setEndValue(QPoint(0, 0)); anim_sel.setEasingCurve(QEasingCurve.InOutQuart); anim_sel.setDuration(450)
-        self.anim_group.addAnimation(anim_home); self.anim_group.addAnimation(anim_sel); self.anim_group.start()
-
-    def slide_to_template(self):
-        self.is_template_active = True
-        self.dynamic_island.left_btn.setText("←")
-        self.anim_group = QParallelAnimationGroup()
-        w = self.width()
-        anim_home = QPropertyAnimation(self.home_view, b"pos"); anim_home.setEndValue(QPoint(-w, 0)); anim_home.setEasingCurve(QEasingCurve.InOutQuart); anim_home.setDuration(450)
-        anim_tpl = QPropertyAnimation(self.template_view, b"pos"); anim_tpl.setEndValue(QPoint(0, 0)); anim_tpl.setEasingCurve(QEasingCurve.InOutQuart); anim_tpl.setDuration(450)
-        self.anim_group.addAnimation(anim_home); self.anim_group.addAnimation(anim_tpl); self.anim_group.start()
 
     def mousePressEvent(self, event):
         if event.button() == Qt.LeftButton:
