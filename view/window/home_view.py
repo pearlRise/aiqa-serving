@@ -10,7 +10,7 @@ from view.configuration.app_texts import BANNER_GREETING, BANNER_SUBTITLE, ENGIN
 
 MENUS = [
     ("💬", "LLM Chat", "Chat with the active model", "chat"),
-    ("�", "Edit Prompt", "Edit system prompt", None),
+    ("📝", "Edit Prompt", "Edit system prompt", None),
     ("⚙️", "Settings", "Configure app theme and paths", None),
     ("🧩", "Template View", "Navigate to dummy template view", "template"),
 ]
