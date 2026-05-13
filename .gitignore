@@ -11,3 +11,7 @@ venv/
 
 # macOS 시스템 파일
 .DS_Store
+
+# 모델 파일
+# Model files
+models/

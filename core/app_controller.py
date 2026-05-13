@@ -1,3 +1,4 @@
+import os
 import atexit
 import time
 from PySide6.QtCore import QObject, QTimer, QEvent, QThread, Signal
@@ -201,9 +202,20 @@ class AppController(QObject):
             active_mod = self.model_worker.target_model if is_loading else self.ollama.active_model
             self.window.selection_view.update_model_list(self.ollama.get_local_models(), active_mod, "Ollama", is_loading=is_loading)
         else:
-            mlx_dummies = [{"name": "mlx-community/Llama-3-8B", "size": 0}]
-            self.window.selection_view.update_model_list(mlx_dummies, getattr(self, 'mlx_active_model', None), "MLX", is_loading=False)
+            mlx_models = self.get_local_mlx_models()
+            self.window.selection_view.update_model_list(mlx_models, getattr(self, 'mlx_active_model', None), "MLX", is_loading=False)
         self.window.slide_to_selection()
+
+    def get_local_mlx_models(self):
+        models = []
+        mlx_dir = "models/mlx"
+        if os.path.exists(mlx_dir):
+            for entry in os.listdir(mlx_dir):
+                full_path = os.path.join(mlx_dir, entry)
+                if os.path.isdir(full_path):
+                    size = sum(os.path.getsize(os.path.join(dirpath, f)) for dirpath, _, filenames in os.walk(full_path) for f in filenames if not os.path.islink(os.path.join(dirpath, f)))
+                    models.append({"name": entry, "size": size})
+        return models
 
     def toggle_ollama_serve(self):
         if self.current_engine == "Ollama":
