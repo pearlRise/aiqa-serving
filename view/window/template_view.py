@@ -4,7 +4,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_round_button import SmoothRoundButton
-from view.components.ui_menu_item import MenuListItem
+from view.components.ui_menu_button import MenuButton
 
 class TemplateView(QWidget):
 
@@ -28,7 +28,7 @@ class TemplateView(QWidget):
         self.scroll_layout.setAlignment(Qt.AlignTop)
         
         for i in range(1, 11):
-            item = MenuListItem("📝", f"Template Menu {i}", "This is a dummy description.")
+            item = MenuButton("📝", f"Template Menu {i}", "This is a dummy description.")
             self.scroll_layout.addWidget(item)
 
         self.scroll.setWidget(self.scroll_content)

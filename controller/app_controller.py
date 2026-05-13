@@ -18,6 +18,7 @@ class AppController(QObject):
         self.is_server_starting = False
         self.is_server_stopping = False
         self.current_engine = "MLX"
+        self.mlx_active_model = None
 
         self._connect_signals()
         
@@ -69,20 +70,39 @@ class AppController(QObject):
             self.window.chat_view.input_field.clear()
 
     def handle_model_selection(self, model_name):
+        if model_name in ["Create Model", "Model Configuration"]:
+            return
+            
+        active = None
         if self.current_engine == "Ollama":
-            if self.ollama.active_model == model_name: self.ollama.unload_model(model_name)
-            else: self.ollama.load_model(model_name)
+            if model_name == "None":
+                if self.ollama.active_model: self.ollama.unload_model(self.ollama.active_model)
+            else:
+                if self.ollama.active_model == model_name: self.ollama.unload_model(model_name)
+                else: self.ollama.load_model(model_name)
             active = self.ollama.active_model
-            self.window.selection_view.set_active_model(active)
-            self.window.home_view.update_model_status(active)
+        else:
+            if model_name == "None":
+                self.mlx_active_model = None
+            else:
+                if getattr(self, 'mlx_active_model', None) == model_name: self.mlx_active_model = None
+                else: self.mlx_active_model = model_name
+            active = self.mlx_active_model
+            
+        self.window.selection_view.set_active_model(active if active else "None")
+        self.window.home_view.update_model_status(active)
+        self.check_ollama_status()
 
     def slide_to_selection(self):
         if self.window.is_chat_active or self.window.is_selection_active: return
         
         if self.current_engine == "Ollama":
             if not self.ollama.is_running(): return
-            self.window.selection_view.update_model_list(self.ollama.get_local_models(), self.ollama.active_model)
-            self.window.slide_to_selection()
+            self.window.selection_view.update_model_list(self.ollama.get_local_models(), self.ollama.active_model, "Ollama")
+        else:
+            mlx_dummies = [{"name": "mlx-community/Llama-3-8B", "size": 0}]
+            self.window.selection_view.update_model_list(mlx_dummies, getattr(self, 'mlx_active_model', None), "MLX")
+        self.window.slide_to_selection()
 
     def toggle_ollama_serve(self):
         if self.current_engine == "Ollama":
@@ -102,6 +122,8 @@ class AppController(QObject):
                 self.is_server_stopping = False
                 self.check_ollama_status()
         elif self.current_engine == "MLX":
+            if not getattr(self, 'mlx_active_model', None):
+                return
             print("MLX Serve mode: Logic not yet implemented.")
 
     def check_ollama_status(self):
@@ -123,7 +145,9 @@ class AppController(QObject):
             else:
                 self.is_server_stopping = False; self.update_server_ui("stopped"); self.window.home_view.update_model_status(None)
 
-    def update_server_ui(self, status): self.window.home_view.update_server_status(status)
+    def update_server_ui(self, status):
+        has_model = (self.ollama.active_model is not None) if self.current_engine == "Ollama" else (getattr(self, 'mlx_active_model', None) is not None)
+        self.window.home_view.update_dashboard_state(self.current_engine, status, has_model)
 
     def toggle_engine(self):
         if self.ollama.is_running() or self.is_server_starting or self.ollama.process is not None:
@@ -141,7 +165,7 @@ class AppController(QObject):
         hover = "background-color: #CC7700;" if self.current_engine == "MLX" else "background-color: #0051A8;"
         self.window.home_view.engine_toggle_btn.setText(self.current_engine)
         self.window.home_view.engine_toggle_btn.setStyleSheet(f"QPushButton {{ {style} color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }} QPushButton:hover {{ {hover} }}")
-        self.window.home_view.update_engine_menus(self.current_engine)
+        self.check_ollama_status()
 
     def handle_close_event(self, event):
         self.update_server_ui("loading"); QApplication.processEvents()

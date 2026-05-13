@@ -1,13 +1,19 @@
-from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton, QStackedWidget)
+from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton, QGraphicsOpacityEffect)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
 from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_glass_frame import GlassFrame
 from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_indicator import IndicatorInfoCell
-from view.components.ui_menu_item import MenuListItem
-from view.configuration.menu_list import MENUS_OLLAMA, MENUS_MLX, MENUS_BASIC
+from view.components.ui_menu_button import MenuButton
 from view.configuration.app_texts import BANNER_GREETING, BANNER_SUBTITLE, ENGINE_TITLE, ENGINE_SUBTITLE
+
+MENUS = [
+    ("💬", "LLM Chat", "현재 활성화된 모델과 대화하기", "chat"),
+    ("📝", "Edit Prompt", "시스템 프롬프트 편집하기", None),
+    ("⚙️", "Settings", "앱 기본 테마 및 경로 설정", None),
+    ("🧩", "Template View", "더미 템플릿 화면으로 이동", "template"),
+]
 
 class HomeView(QWidget):
     chat_requested = Signal()
@@ -104,9 +110,11 @@ class HomeView(QWidget):
             title_label.setAlignment(Qt.AlignLeft)
             
             if title == "Server":
+                self.server_cell = cell
                 self.server_icon_label = icon_label
                 self.server_status_label = val_label
             elif title == "Model":
+                self.model_cell = cell
                 self.model_icon_label = icon_label
                 self.model_status_label = val_label
             
@@ -119,6 +127,15 @@ class HomeView(QWidget):
             self.dashboard_layout.addWidget(cell)
         
         self.scroll_layout.addWidget(self.indicator_dashboard)
+
+        self.server_cell.clicked.connect(lambda: self.serve_requested.emit())
+        self.model_cell.clicked.connect(lambda: self.selection_requested.emit())
+        
+        self.server_cell_effect = QGraphicsOpacityEffect()
+        self.server_cell.setGraphicsEffect(self.server_cell_effect)
+        
+        self.model_cell_effect = QGraphicsOpacityEffect()
+        self.model_cell.setGraphicsEffect(self.model_cell_effect)
 
         self.engine_frame = GlassFrame(radius=16)
         self.engine_frame.setFixedHeight(64)
@@ -148,79 +165,24 @@ class HomeView(QWidget):
         
         self.scroll_layout.addWidget(self.engine_frame)
         
-        self.menu_stack = QStackedWidget()
-        self.scroll_layout.addWidget(self.menu_stack)
-        
-        self.ollama_menu_widget = QWidget()
-        self.ollama_menu_layout = QVBoxLayout(self.ollama_menu_widget)
-        self.ollama_menu_layout.setContentsMargins(0, 0, 0, 0)
-        self.ollama_menu_layout.setSpacing(12)
-        
-        self.mlx_menu_widget = QWidget()
-        self.mlx_menu_layout = QVBoxLayout(self.mlx_menu_widget)
-        self.mlx_menu_layout.setContentsMargins(0, 0, 0, 0)
-        self.mlx_menu_layout.setSpacing(12)
-        
-        self.menu_stack.addWidget(self.ollama_menu_widget)
-        self.menu_stack.addWidget(self.mlx_menu_widget)
-        
-        self._build_ollama_menus()
-        self._build_mlx_menus()
-        self._build_basic_menus()
+        self._build_menus()
 
         self.current_server_status = "stopped"
-        self.update_engine_menus("MLX")
+        self.update_dashboard_state("MLX", "stopped", False)
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-    def update_engine_menus(self, engine_name):
-        if engine_name == "Ollama":
-            self.menu_stack.setCurrentWidget(self.ollama_menu_widget)
-        else:
-            self.menu_stack.setCurrentWidget(self.mlx_menu_widget)
-        self.update_server_status(getattr(self, 'current_server_status', 'stopped'))
-
-    def _build_ollama_menus(self):
-        action_map = {
-            "serve": self._setup_ollama_serve,
-            "chat": self._setup_ollama_chat,
-            "selection": self._setup_ollama_selection
-        }
-        
-        for icon, title, sub, action in MENUS_OLLAMA:
-            item = MenuListItem(icon, title, sub)
-            if action in action_map:
-                action_map[action](item)
-            self.ollama_menu_layout.addWidget(item)
-
-    def _setup_ollama_serve(self, item):
-        self.ollama_serve_item = item
-        item.clicked.connect(lambda _: self.serve_requested.emit())
-        
-    def _setup_ollama_chat(self, item):
-        self.ollama_chat_item = item
-        item.clicked.connect(lambda _: self.chat_requested.emit())
-        
-    def _setup_ollama_selection(self, item):
-        self.ollama_choose_model_item = item
-        item.clicked.connect(lambda _: self.selection_requested.emit())
-
-    def _build_mlx_menus(self):
-        for icon, title, sub, action in MENUS_MLX:
-            item = MenuListItem(icon, title, sub)
+    def _build_menus(self):
+        for icon, title, sub, action in MENUS:
+            item = MenuButton(icon, title, sub)
             if action == "chat":
                 item.clicked.connect(lambda _: self.chat_requested.emit())
-            self.mlx_menu_layout.addWidget(item)
-
-    def _build_basic_menus(self):
-        for icon, title, sub, action in MENUS_BASIC:
-            item = MenuListItem(icon, title, sub)
-            if action == "template":
+            elif action == "template":
                 item.clicked.connect(lambda _: self.template_requested.emit())
             self.scroll_layout.addWidget(item)
 
-    def update_server_status(self, status):
+    def update_dashboard_state(self, engine_name, status, has_model):
         self.current_server_status = status
         if not hasattr(self, 'server_status_label'): 
             return
@@ -237,6 +199,22 @@ class HomeView(QWidget):
             self.server_status_label.setText("Loading")
             self.server_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             self.server_icon_label.setText("⌛️")
+            
+        if engine_name == "Ollama":
+            is_running = (status == "running")
+            if hasattr(self, 'model_cell'):
+                self.model_cell.setEnabled(is_running)
+                self.model_cell_effect.setOpacity(1.0 if is_running else 0.4)
+            if hasattr(self, 'server_cell'):
+                self.server_cell.setEnabled(True)
+                self.server_cell_effect.setOpacity(1.0)
+        else:
+            if hasattr(self, 'model_cell'):
+                self.model_cell.setEnabled(True)
+                self.model_cell_effect.setOpacity(1.0)
+            if hasattr(self, 'server_cell'):
+                self.server_cell.setEnabled(has_model)
+                self.server_cell_effect.setOpacity(1.0 if has_model else 0.4)
 
     def update_model_status(self, model_name):
         if not hasattr(self, 'model_status_label'): return
