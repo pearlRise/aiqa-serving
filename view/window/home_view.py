@@ -73,7 +73,7 @@ class HomeView(QWidget):
 
         indicators_data = [
             ("⌛️", "Server", "Loading"),
-            ("🧠", "Model", "Loading")
+            ("🤖", "Model", "Loading")
         ]
         
         for idx, (icon, title, value) in enumerate(indicators_data):
@@ -222,5 +222,5 @@ class HomeView(QWidget):
             self.model_status_label.setText(model_name)
             self.model_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
         else:
-            self.model_status_label.setText("None")
+            self.model_status_label.setText("Unselected")
             self.model_status_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")

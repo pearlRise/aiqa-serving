@@ -40,10 +40,9 @@ class SelectionView(QWidget):
             if widget:
                 widget.deleteLater()
 
-        none_item = MenuButton("🚫", "None", "모델 선택 안함")
-        if not active_model or active_model == "None":
+        none_item = MenuButton("🚫", "Unselected", "모델 선택 안함")
+        if not active_model or active_model == "Unselected":
             none_item.set_active(True)
-            none_item.setEnabled(False)
         none_item.clicked.connect(self.model_selected.emit)
         self.scroll_layout.addWidget(none_item)
 
@@ -83,5 +82,7 @@ class SelectionView(QWidget):
         for i in range(self.scroll_layout.count()):
             widget = self.scroll_layout.itemAt(i).widget()
             if isinstance(widget, MenuButton):
+                if widget.title_label.text() in ["Create Model", "Model Configuration"]:
+                    continue
                 is_active = (widget.title_label.text() == active_model_name)
                 widget.set_active(is_active)

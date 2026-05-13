@@ -74,7 +74,8 @@ class MenuButton(GlassFrame):
         self.default_bg = "rgba(255, 255, 255, 0.05)"
         self.hover_bg = "rgba(255, 255, 255, 0.12)"
         self.pressed_bg = "rgba(255, 255, 255, 0.2)"
-        self._apply_bg(self.default_bg)
+        self.border_color = "rgba(255, 255, 255, 0.1)"
+        self._apply_bg(self.default_bg, self.border_color)
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 8, 16, 8)
@@ -98,26 +99,28 @@ class MenuButton(GlassFrame):
         layout.addWidget(self.icon_label)
         layout.addLayout(text_layout)
         
-    def _apply_bg(self, bg_color):
-        self.setStyleSheet(f"#MenuButton {{ background-color: {bg_color}; border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; }}")
+    def _apply_bg(self, bg_color, border_color="rgba(255, 255, 255, 0.1)"):
+        self.setStyleSheet(f"#MenuButton {{ background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 16px; }}")
 
     def set_active(self, is_active):
         self.is_active = is_active
         color, bg = ("#E6A23C", "rgba(230, 162, 60,") if is_active else ("#FFFFFF", "rgba(255, 255, 255,")
-        self.default_bg, self.hover_bg, self.pressed_bg = f"{bg} 0.15)", f"{bg} 0.25)", f"{bg} 0.35)" if is_active else (f"{bg} 0.05)", f"{bg} 0.12)", f"{bg} 0.2)")
+        self.border_color = "rgba(230, 162, 60, 0.4)" if is_active else "rgba(255, 255, 255, 0.1)"
+        
+        self.default_bg, self.hover_bg, self.pressed_bg = (f"{bg} 0.15)", f"{bg} 0.25)", f"{bg} 0.35)") if is_active else (f"{bg} 0.05)", f"{bg} 0.12)", f"{bg} 0.2)")
         self.title_label.setStyleSheet(f"color: {color}; font-size: 15px; font-weight: bold; background: transparent; border: none;")
-        self._apply_bg(self.default_bg)
+        self._apply_bg(self.default_bg, self.border_color)
 
     def enterEvent(self, event):
-        if self.isEnabled(): self._apply_bg(self.hover_bg); super().enterEvent(event)
+        if self.isEnabled(): self._apply_bg(self.hover_bg, self.border_color); super().enterEvent(event)
     def leaveEvent(self, event):
-        if self.isEnabled(): self._apply_bg(self.default_bg); super().leaveEvent(event)
+        if self.isEnabled(): self._apply_bg(self.default_bg, self.border_color); super().leaveEvent(event)
     def mousePressEvent(self, event):
-        if event.button() == Qt.LeftButton and self.isEnabled(): self._apply_bg(self.pressed_bg); super().mousePressEvent(event)
+        if event.button() == Qt.LeftButton and self.isEnabled(): self._apply_bg(self.pressed_bg, self.border_color); super().mousePressEvent(event)
     def mouseReleaseEvent(self, event):
         if event.button() == Qt.LeftButton and self.isEnabled():
-            if self.underMouse(): self._apply_bg(self.hover_bg); self.clicked.emit(self.title_label.text())
-            else: self._apply_bg(self.default_bg)
+            if self.underMouse(): self._apply_bg(self.hover_bg, self.border_color); self.clicked.emit(self.title_label.text())
+            else: self._apply_bg(self.default_bg, self.border_color)
         super().mouseReleaseEvent(event)
 
     def setEnabled(self, enabled):

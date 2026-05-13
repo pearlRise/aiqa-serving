@@ -1,10 +1,26 @@
 import atexit
 import time
-from PySide6.QtCore import QObject, QTimer, QEvent
+from PySide6.QtCore import QObject, QTimer, QEvent, QThread, Signal
 from PySide6.QtWidgets import QApplication
 from core.ollama_manager import ServerManager
 from controller.chat_controller import ChatController
 from view.components.ui_main_window import MainWindow
+
+class ModelWorker(QThread):
+    finished = Signal()
+
+    def __init__(self, ollama_manager, action, model_name):
+        super().__init__()
+        self.ollama = ollama_manager
+        self.action = action
+        self.model_name = model_name
+
+    def run(self):
+        if self.action == 'load':
+            self.ollama.load_model(self.model_name)
+        elif self.action == 'unload':
+            self.ollama.unload_model(self.model_name)
+        self.finished.emit()
 
 class AppController(QObject):
     def __init__(self):
@@ -14,6 +30,7 @@ class AppController(QObject):
         atexit.register(self.ollama.stop_server)
         
         self.chat_logic = ChatController(self.ollama)
+        self.model_worker = None
         
         self.is_server_starting = False
         self.is_server_stopping = False
@@ -73,25 +90,55 @@ class AppController(QObject):
         if model_name in ["Create Model", "Model Configuration"]:
             return
             
-        active = None
         if self.current_engine == "Ollama":
-            if model_name == "None":
-                if self.ollama.active_model: self.ollama.unload_model(self.ollama.active_model)
+            if self.model_worker and self.model_worker.isRunning():
+                return
+
+            action = None
+            model_to_act_on = None
+
+            if model_name == "Unselected":
+                if self.ollama.active_model:
+                    action = 'unload'
+                    model_to_act_on = self.ollama.active_model
             else:
-                if self.ollama.active_model == model_name: self.ollama.unload_model(model_name)
-                else: self.ollama.load_model(model_name)
-            active = self.ollama.active_model
+                if self.ollama.active_model == model_name:
+                    action = 'unload'
+                    model_to_act_on = model_name
+                else:
+                    action = 'load'
+                    model_to_act_on = model_name
+            
+            if not action:
+                return
+
+            self.window.home_view.update_model_status("Loading")
+            QApplication.processEvents()
+
+            self.model_worker = ModelWorker(self.ollama, action, model_to_act_on)
+            self.model_worker.finished.connect(self._on_model_op_finished)
+            self.model_worker.start()
         else:
-            if model_name == "None":
+            if model_name == "Unselected":
                 self.mlx_active_model = None
             else:
                 if getattr(self, 'mlx_active_model', None) == model_name: self.mlx_active_model = None
                 else: self.mlx_active_model = model_name
             active = self.mlx_active_model
             
-        self.window.selection_view.set_active_model(active if active else "None")
+            self.window.selection_view.set_active_model(active if active else "Unselected")
+            self.window.home_view.update_model_status(active)
+            self.check_ollama_status()
+
+    def _on_model_op_finished(self):
+        active = self.ollama.active_model
+        self.window.selection_view.set_active_model(active if active else "Unselected")
         self.window.home_view.update_model_status(active)
         self.check_ollama_status()
+
+        if self.model_worker:
+            self.model_worker.deleteLater()
+            self.model_worker = None
 
     def slide_to_selection(self):
         if self.window.is_chat_active or self.window.is_selection_active: return
