@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QHBoxLayout, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor, QFont
-from view.components.ui_common import GlassFrame
+from view.components.ui_glass_frame import GlassFrame
 
 class MenuListItem(GlassFrame):
     clicked = Signal(str)

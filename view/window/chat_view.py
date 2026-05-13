@@ -2,10 +2,12 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
-from view.components.ui_common import SmoothScrollArea, SmoothRoundButton
-from view.components.ui_chatting import ChatItem, CustomInput
+from view.components.ui_scroll_area import SmoothScrollArea
+from view.components.ui_round_button import SmoothRoundButton
+from view.components.ui_chat_bubble import ChatItem
+from view.components.ui_chat_input import CustomInput
 from view.components.ui_dynamicIsland import DynamicIsland
-from view.components.ui_internalMenu import InternalMenu
+from view.components.ui_internal_menu import InternalMenu
 
 class ChatView(QWidget):
     def __init__(self):
@@ -52,22 +54,6 @@ class ChatView(QWidget):
             }
         """)
 
-        self.scroll_effect = QGraphicsOpacityEffect(self.scroll.verticalScrollBar())
-        self.scroll.verticalScrollBar().setGraphicsEffect(self.scroll_effect)
-        self.scroll_effect.setOpacity(0.0)
-        
-        self.scroll_timer = QTimer(self)
-        self.scroll_timer.setSingleShot(True)
-        self.scroll_timer.timeout.connect(self.hide_scrollbar)
-        
-        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
-        self.scrollbar_anim.setDuration(300)
-        self.scrollbar_anim.setStartValue(1.0)
-        self.scrollbar_anim.setEndValue(0.0)
-        
-        self.scroll.verticalScrollBar().valueChanged.connect(self.show_scrollbar)
-        self.scroll.verticalScrollBar().rangeChanged.connect(self.show_scrollbar)
-        
         self.chat_content = QWidget()
         self.chat_content.setStyleSheet("background: transparent;")
         self.chat_layout = QVBoxLayout(self.chat_content)
@@ -116,15 +102,6 @@ class ChatView(QWidget):
 
         self.input_field.setFocus()
         
-    def show_scrollbar(self, *args):
-        if self.scrollbar_anim.state() == QPropertyAnimation.Running:
-            self.scrollbar_anim.stop()
-        self.scroll_effect.setOpacity(1.0)
-        self.scroll_timer.start(1500)
-
-    def hide_scrollbar(self):
-        self.scrollbar_anim.start()
-
     def add_chat_bubble(self, text, is_me, sender_name=""):
         current_sender_id = "ME" if is_me else sender_name
         is_consecutive = (self.last_sender_id == current_sender_id)

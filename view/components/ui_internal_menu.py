@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import QFrame, QVBoxLayout, QWidget, QGraphicsOpacityEffect, QLabel
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
-from view.components.ui_common import SmoothScrollArea
+from view.components.ui_scroll_area import SmoothScrollArea
 
 class InternalMenu(QFrame):
     def __init__(self, parent=None):
@@ -30,22 +30,6 @@ class InternalMenu(QFrame):
             }
         """)
 
-        self.scroll_effect = QGraphicsOpacityEffect(self.scroll.verticalScrollBar())
-        self.scroll.verticalScrollBar().setGraphicsEffect(self.scroll_effect)
-        self.scroll_effect.setOpacity(0.0)
-        
-        self.scroll_timer = QTimer(self)
-        self.scroll_timer.setSingleShot(True)
-        self.scroll_timer.timeout.connect(self.hide_scrollbar)
-        
-        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
-        self.scrollbar_anim.setDuration(300)
-        self.scrollbar_anim.setStartValue(1.0)
-        self.scrollbar_anim.setEndValue(0.0)
-        
-        self.scroll.verticalScrollBar().valueChanged.connect(self.show_scrollbar)
-        self.scroll.verticalScrollBar().rangeChanged.connect(self.show_scrollbar)
-        
         self.content = QWidget()
         self.content.setStyleSheet("background: transparent;")
         self.layout = QVBoxLayout(self.content)
@@ -62,12 +46,6 @@ class InternalMenu(QFrame):
         self.main_layout = QVBoxLayout(self)
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.addWidget(self.scroll)
-
-    def show_scrollbar(self, *args):
-        if self.scrollbar_anim.state() == QPropertyAnimation.Running: self.scrollbar_anim.stop()
-        self.scroll_effect.setOpacity(1.0); self.scroll_timer.start(1500)
-
-    def hide_scrollbar(self): self.scrollbar_anim.start()
 
     def toggle(self, parent_width):
         if self.isHidden():

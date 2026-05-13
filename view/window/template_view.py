@@ -2,8 +2,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
-from view.components.ui_common import SmoothScrollArea, SmoothRoundButton
-from view.components.ui_menuItem import MenuListItem
+from view.components.ui_scroll_area import SmoothScrollArea
+from view.components.ui_round_button import SmoothRoundButton
+from view.components.ui_menu_item import MenuListItem
 from view.components.ui_dynamicIsland import DynamicIsland
 
 class TemplateView(QWidget):
@@ -55,22 +56,6 @@ class TemplateView(QWidget):
             }
         """)
 
-        self.scroll_effect = QGraphicsOpacityEffect(self.scroll.verticalScrollBar())
-        self.scroll.verticalScrollBar().setGraphicsEffect(self.scroll_effect)
-        self.scroll_effect.setOpacity(0.0)
-        
-        self.scroll_timer = QTimer(self)
-        self.scroll_timer.setSingleShot(True)
-        self.scroll_timer.timeout.connect(self.hide_scrollbar)
-        
-        self.scrollbar_anim = QPropertyAnimation(self.scroll_effect, b"opacity")
-        self.scrollbar_anim.setDuration(300)
-        self.scrollbar_anim.setStartValue(1.0)
-        self.scrollbar_anim.setEndValue(0.0)
-        
-        self.scroll.verticalScrollBar().valueChanged.connect(self.show_scrollbar)
-        self.scroll.verticalScrollBar().rangeChanged.connect(self.show_scrollbar)
-        
         self.scroll_content = QWidget()
         self.scroll_content.setStyleSheet("background: transparent;")
         self.scroll_layout = QVBoxLayout(self.scroll_content)
@@ -93,11 +78,3 @@ class TemplateView(QWidget):
         super().resizeEvent(event)
         if hasattr(self, 'dynamic_island'): 
             self.dynamic_island.update_position(self.width())
-
-    def show_scrollbar(self, *args):
-        if self.scrollbar_anim.state() == QPropertyAnimation.Running: self.scrollbar_anim.stop()
-        self.scroll_effect.setOpacity(1.0)
-        self.scroll_timer.start(1500)
-
-    def hide_scrollbar(self):
-        self.scrollbar_anim.start()
