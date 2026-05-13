@@ -11,24 +11,10 @@ class InternalMenu(QFrame):
         """)
         self.hide()
 
-        self.scroll = SmoothScrollArea()
+        self.scroll = SmoothScrollArea(scrollbar_width=6, scrollbar_margin="4px 0px 4px 0px")
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.scroll.setStyleSheet("""
-            QScrollArea { border: none; background: transparent; }
-            QScrollBar:vertical {
-                border: none; background: transparent; width: 6px; margin: 4px 0px 4px 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(0, 0, 0, 0.3); border-radius: 3px; min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover { background: rgba(0, 0, 0, 0.5); }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                height: 0px; background: none;
-            }
-        """)
         
         self.content = QWidget()
         self.content.setStyleSheet("background: transparent;")

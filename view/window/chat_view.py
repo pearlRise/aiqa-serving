@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QFrame, QGraphicsOpacityEffect, QLabel
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
 from view.components.ui_scroll_area import SmoothScrollArea
@@ -35,24 +35,10 @@ class ChatView(QWidget):
         self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
         self.back_btn = self.dynamic_island.left_btn
 
-        self.scroll = SmoothScrollArea()
+        self.scroll = SmoothScrollArea(scrollbar_margin="0px")
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
         self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.scroll.setStyleSheet("""
-            QScrollArea { border: none; background: transparent; }
-            QScrollBar:vertical {
-                border: none; background: transparent; width: 8px; margin: 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(255, 255, 255, 0.25); border-radius: 4px; min-height: 30px;
-            }
-            QScrollBar::handle:vertical:hover { background: rgba(255, 255, 255, 0.4); }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                height: 0px; background: none;
-            }
-        """)
 
         self.chat_content = QWidget()
         self.chat_content.setStyleSheet("background: transparent;")
