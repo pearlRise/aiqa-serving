@@ -9,10 +9,10 @@ from view.components.ui_menu_button import MenuButton
 from view.configuration.app_texts import BANNER_GREETING, BANNER_SUBTITLE, ENGINE_TITLE, ENGINE_SUBTITLE
 
 MENUS = [
-    ("💬", "LLM Chat", "현재 활성화된 모델과 대화하기", "chat"),
-    ("📝", "Edit Prompt", "시스템 프롬프트 편집하기", None),
-    ("⚙️", "Settings", "앱 기본 테마 및 경로 설정", None),
-    ("🧩", "Template View", "더미 템플릿 화면으로 이동", "template"),
+    ("💬", "LLM Chat", "Chat with the active model", "chat"),
+    ("�", "Edit Prompt", "Edit system prompt", None),
+    ("⚙️", "Settings", "Configure app theme and paths", None),
+    ("🧩", "Template View", "Navigate to dummy template view", "template"),
 ]
 
 class HomeView(QWidget):
@@ -234,5 +234,5 @@ class HomeView(QWidget):
             color = "#E6A23C" if is_loading else "#67C23A"
             self.model_status_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px; background: transparent; border: none;")
         else:
-            self.model_status_label.setText("Unselected")
+            self.model_status_label.setText("Unload")
             self.model_status_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")

@@ -40,8 +40,8 @@ class SelectionView(QWidget):
             if widget:
                 widget.deleteLater()
 
-        none_item = MenuButton("🚫", "Unselected", "모델 선택 안함")
-        if not active_model or active_model == "Unselected":
+        none_item = MenuButton("🚫", "Unload", "Unload active model")
+        if not active_model or active_model == "Unload":
             none_item.set_active(True, is_loading)
         none_item.clicked.connect(self.model_selected.emit)
         self.scroll_layout.addWidget(none_item)
@@ -74,7 +74,7 @@ class SelectionView(QWidget):
             create_item.clicked.connect(self.model_selected.emit)
             self.scroll_layout.addWidget(create_item)
         elif engine == "MLX":
-            config_item = MenuButton("⚙️", "Model Configuration", "Configure model parameters and prompt")
+            config_item = MenuButton("⚙️", "Model Configuration", "Configure model parameters")
             config_item.clicked.connect(self.model_selected.emit)
             self.scroll_layout.addWidget(config_item)
 

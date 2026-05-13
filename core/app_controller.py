@@ -3,7 +3,7 @@ import time
 from PySide6.QtCore import QObject, QTimer, QEvent, QThread, Signal
 from PySide6.QtWidgets import QApplication
 from core.ollama_manager import ServerManager
-from controller.chat_controller import ChatController
+from core.chat_controller import ChatController
 from view.components.ui_main_window import MainWindow
 
 class ModelWorker(QThread):
@@ -28,6 +28,7 @@ class ModelWorker(QThread):
                     self.status_flag.emit("model_worker", "start", "Loading...")
                     self.ollama.load_model(self.target_model)
                 if self.is_cancelled:
+                    self.ollama.unload_model(self.target_model)
                     self.status_flag.emit("model_worker", "end", "Cancelled")
                 else:
                     self.status_flag.emit("model_worker", "end", "Loaded")
@@ -36,6 +37,7 @@ class ModelWorker(QThread):
                 self.status_flag.emit("model_worker", "start", "Loading...")
                 self.ollama.load_model(self.target_model)
                 if self.is_cancelled:
+                    self.ollama.unload_model(self.target_model)
                     self.status_flag.emit("model_worker", "end", "Cancelled")
                 else:
                     self.status_flag.emit("model_worker", "end", "Loaded")
@@ -143,7 +145,7 @@ class AppController(QObject):
             target_model = None
             current_model = self.ollama.active_model
 
-            if model_name == "Unselected":
+            if model_name == "Unload":
                 if current_model:
                     action = 'unload'
                     target_model = current_model
@@ -161,28 +163,28 @@ class AppController(QObject):
             if not action:
                 return
 
-            self.window.home_view.update_model_status(target_model if target_model else "Unselected", is_loading=True)
-            self.window.selection_view.set_active_model(target_model if target_model else "Unselected", is_loading=True)
+            self.window.home_view.update_model_status(target_model if target_model else "Unload", is_loading=True)
+            self.window.selection_view.set_active_model(target_model if target_model else "Unload", is_loading=True)
             
             self.model_worker = ModelWorker(self.ollama, action, target_model, current_model)
             self.model_worker.status_flag.connect(self.handle_task_status)
             self.model_worker.finished.connect(self._on_model_op_finished)
             self.model_worker.start()
         else:
-            if model_name == "Unselected":
+            if model_name == "Unload":
                 self.mlx_active_model = None
             else:
                 if getattr(self, 'mlx_active_model', None) == model_name: self.mlx_active_model = None
                 else: self.mlx_active_model = model_name
             active = self.mlx_active_model
             
-            self.window.selection_view.set_active_model(active if active else "Unselected", is_loading=False)
+            self.window.selection_view.set_active_model(active if active else "Unload", is_loading=False)
             self.window.home_view.update_model_status(active, is_loading=False)
             self.check_ollama_status()
 
     def _on_model_op_finished(self):
         active = self.ollama.active_model
-        self.window.selection_view.set_active_model(active if active else "Unselected", is_loading=False)
+        self.window.selection_view.set_active_model(active if active else "Unload", is_loading=False)
         self.window.home_view.update_model_status(active, is_loading=False)
         self.check_ollama_status()
 
