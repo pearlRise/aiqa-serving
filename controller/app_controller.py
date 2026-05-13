@@ -8,18 +8,41 @@ from view.components.ui_main_window import MainWindow
 
 class ModelWorker(QThread):
     finished = Signal()
+    progress_updated = Signal(str)
 
-    def __init__(self, ollama_manager, action, model_name):
+    def __init__(self, ollama_manager, action, target_model, current_model=None):
         super().__init__()
         self.ollama = ollama_manager
         self.action = action
-        self.model_name = model_name
+        self.target_model = target_model
+        self.current_model = current_model
+        self.is_cancelled = False
 
     def run(self):
-        if self.action == 'load':
-            self.ollama.load_model(self.model_name)
+        if self.action == 'switch':
+            if self.current_model:
+                self.progress_updated.emit("Unloading...")
+                self.ollama.unload_model(self.current_model)
+            
+            if not self.is_cancelled:
+                self.progress_updated.emit("Loading Model...")
+                self.ollama.load_model(self.target_model)
+            
+            if self.is_cancelled:
+                self.progress_updated.emit("Cancelling...")
+                self.ollama.unload_model(self.target_model)
+
+        elif self.action == 'load':
+            self.progress_updated.emit("Loading Model...")
+            self.ollama.load_model(self.target_model)
+            if self.is_cancelled:
+                self.progress_updated.emit("Cancelling...")
+                self.ollama.unload_model(self.target_model)
+
         elif self.action == 'unload':
-            self.ollama.unload_model(self.model_name)
+            self.progress_updated.emit("Unloading...")
+            self.ollama.unload_model(self.target_model if self.target_model else self.current_model)
+
         self.finished.emit()
 
 class AppController(QObject):
@@ -52,6 +75,7 @@ class AppController(QObject):
     def _connect_signals(self):
         self.window.chat_view.send_btn.clicked.connect(self.handle_send_message)
         self.window.chat_view.input_field.returnPressed.connect(self.handle_send_message)
+        self.window.dynamic_island.left_btn.clicked.connect(self.handle_back_requested)
         
         self.chat_logic.thinking_started.connect(lambda: self.window.chat_view.add_chat_bubble("{...}", is_me=False, sender_name="Gemma"))
         self.chat_logic.chunk_delivered.connect(self.window.chat_view.update_last_bubble_stream)
@@ -78,6 +102,15 @@ class AppController(QObject):
                 self.window.slide_to_home()
                 return True
         return super().eventFilter(obj, event)
+        
+    def handle_back_requested(self):
+        if self.window.is_selection_active:
+            self.cancel_model_loading()
+            
+    def cancel_model_loading(self):
+        if self.model_worker and self.model_worker.isRunning():
+            self.model_worker.is_cancelled = True
+            self.window.dynamic_island.show_progress("Cancelling...")
 
     def handle_send_message(self):
         text = self.window.chat_view.input_field.toPlainText().strip()
@@ -92,30 +125,40 @@ class AppController(QObject):
             
         if self.current_engine == "Ollama":
             if self.model_worker and self.model_worker.isRunning():
+                self.cancel_model_loading()
                 return
 
             action = None
-            model_to_act_on = None
+            target_model = None
+            current_model = self.ollama.active_model
 
             if model_name == "Unselected":
-                if self.ollama.active_model:
+                if current_model:
                     action = 'unload'
-                    model_to_act_on = self.ollama.active_model
+                    target_model = current_model
             else:
-                if self.ollama.active_model == model_name:
+                if current_model == model_name:
                     action = 'unload'
-                    model_to_act_on = model_name
+                    target_model = model_name
+                elif current_model:
+                    action = 'switch'
+                    target_model = model_name
                 else:
                     action = 'load'
-                    model_to_act_on = model_name
+                    target_model = model_name
             
             if not action:
                 return
 
-            self.window.home_view.update_model_status("Loading")
+            self.window.home_view.update_model_status(target_model if target_model else "Unselected", is_loading=True)
+            self.window.selection_view.set_active_model(target_model if target_model else "Unselected", is_loading=True)
+            
+            initial_text = "Unloading..." if action in ['unload', 'switch'] else "Loading Model..."
+            self.window.dynamic_island.show_progress(initial_text)
             QApplication.processEvents()
 
-            self.model_worker = ModelWorker(self.ollama, action, model_to_act_on)
+            self.model_worker = ModelWorker(self.ollama, action, target_model, current_model)
+            self.model_worker.progress_updated.connect(self.window.dynamic_island.show_progress)
             self.model_worker.finished.connect(self._on_model_op_finished)
             self.model_worker.start()
         else:
@@ -126,14 +169,15 @@ class AppController(QObject):
                 else: self.mlx_active_model = model_name
             active = self.mlx_active_model
             
-            self.window.selection_view.set_active_model(active if active else "Unselected")
-            self.window.home_view.update_model_status(active)
+            self.window.selection_view.set_active_model(active if active else "Unselected", is_loading=False)
+            self.window.home_view.update_model_status(active, is_loading=False)
             self.check_ollama_status()
 
     def _on_model_op_finished(self):
+        self.window.dynamic_island.hide_progress()
         active = self.ollama.active_model
-        self.window.selection_view.set_active_model(active if active else "Unselected")
-        self.window.home_view.update_model_status(active)
+        self.window.selection_view.set_active_model(active if active else "Unselected", is_loading=False)
+        self.window.home_view.update_model_status(active, is_loading=False)
         self.check_ollama_status()
 
         if self.model_worker:
@@ -145,10 +189,12 @@ class AppController(QObject):
         
         if self.current_engine == "Ollama":
             if not self.ollama.is_running(): return
-            self.window.selection_view.update_model_list(self.ollama.get_local_models(), self.ollama.active_model, "Ollama")
+            is_loading = self.model_worker is not None and self.model_worker.isRunning()
+            active_mod = self.model_worker.target_model if is_loading else self.ollama.active_model
+            self.window.selection_view.update_model_list(self.ollama.get_local_models(), active_mod, "Ollama", is_loading=is_loading)
         else:
             mlx_dummies = [{"name": "mlx-community/Llama-3-8B", "size": 0}]
-            self.window.selection_view.update_model_list(mlx_dummies, getattr(self, 'mlx_active_model', None), "MLX")
+            self.window.selection_view.update_model_list(mlx_dummies, getattr(self, 'mlx_active_model', None), "MLX", is_loading=False)
         self.window.slide_to_selection()
 
     def toggle_ollama_serve(self):
@@ -215,6 +261,8 @@ class AppController(QObject):
         self.check_ollama_status()
 
     def handle_close_event(self, event):
+        if self.model_worker and self.model_worker.isRunning():
+            self.model_worker.is_cancelled = True
         self.update_server_ui("loading"); QApplication.processEvents()
         self.ollama.stop_server()
         for _ in range(15):

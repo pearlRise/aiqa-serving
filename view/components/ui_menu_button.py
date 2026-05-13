@@ -102,12 +102,21 @@ class MenuButton(GlassFrame):
     def _apply_bg(self, bg_color, border_color="rgba(255, 255, 255, 0.1)"):
         self.setStyleSheet(f"#MenuButton {{ background-color: {bg_color}; border: 1px solid {border_color}; border-radius: 16px; }}")
 
-    def set_active(self, is_active):
+    def set_active(self, is_active, is_loading=False):
         self.is_active = is_active
-        color, bg = ("#E6A23C", "rgba(230, 162, 60,") if is_active else ("#FFFFFF", "rgba(255, 255, 255,")
-        self.border_color = "rgba(230, 162, 60, 0.4)" if is_active else "rgba(255, 255, 255, 0.1)"
-        
-        self.default_bg, self.hover_bg, self.pressed_bg = (f"{bg} 0.15)", f"{bg} 0.25)", f"{bg} 0.35)") if is_active else (f"{bg} 0.05)", f"{bg} 0.12)", f"{bg} 0.2)")
+        if is_active:
+            if is_loading:
+                color, bg = "#E6A23C", "rgba(230, 162, 60,"  # Orange
+                self.border_color = "rgba(230, 162, 60, 0.4)"
+            else:
+                color, bg = "#67C23A", "rgba(103, 194, 58,"  # Green
+                self.border_color = "rgba(103, 194, 58, 0.4)"
+            self.default_bg, self.hover_bg, self.pressed_bg = (f"{bg} 0.15)", f"{bg} 0.25)", f"{bg} 0.35)")
+        else:
+            color, bg = "#FFFFFF", "rgba(255, 255, 255,"
+            self.border_color = "rgba(255, 255, 255, 0.1)"
+            self.default_bg, self.hover_bg, self.pressed_bg = (f"{bg} 0.05)", f"{bg} 0.12)", f"{bg} 0.2)")
+            
         self.title_label.setStyleSheet(f"color: {color}; font-size: 15px; font-weight: bold; background: transparent; border: none;")
         self._apply_bg(self.default_bg, self.border_color)
 

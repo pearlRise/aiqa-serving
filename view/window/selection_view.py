@@ -33,7 +33,7 @@ class SelectionView(QWidget):
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-    def update_model_list(self, models, active_model=None, engine="Ollama"):
+    def update_model_list(self, models, active_model=None, engine="Ollama", is_loading=False):
         while self.scroll_layout.count():
             item = self.scroll_layout.takeAt(0)
             widget = item.widget()
@@ -42,7 +42,7 @@ class SelectionView(QWidget):
 
         none_item = MenuButton("🚫", "Unselected", "모델 선택 안함")
         if not active_model or active_model == "Unselected":
-            none_item.set_active(True)
+            none_item.set_active(True, is_loading)
         none_item.clicked.connect(self.model_selected.emit)
         self.scroll_layout.addWidget(none_item)
 
@@ -65,7 +65,7 @@ class SelectionView(QWidget):
 
                 item = MenuButton("🤖", model_name, subtitle)
                 if active_model == model_name:
-                    item.set_active(True)
+                    item.set_active(True, is_loading)
                 item.clicked.connect(self.model_selected.emit)
                 self.scroll_layout.addWidget(item)
                 
@@ -78,11 +78,11 @@ class SelectionView(QWidget):
             config_item.clicked.connect(self.model_selected.emit)
             self.scroll_layout.addWidget(config_item)
 
-    def set_active_model(self, active_model_name):
+    def set_active_model(self, active_model_name, is_loading=False):
         for i in range(self.scroll_layout.count()):
             widget = self.scroll_layout.itemAt(i).widget()
             if isinstance(widget, MenuButton):
                 if widget.title_label.text() in ["Create Model", "Model Configuration"]:
                     continue
                 is_active = (widget.title_label.text() == active_model_name)
-                widget.set_active(is_active)
+                widget.set_active(is_active, is_loading)

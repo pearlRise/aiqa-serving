@@ -216,11 +216,12 @@ class HomeView(QWidget):
                 self.server_cell.setEnabled(has_model)
                 self.server_cell_effect.setOpacity(1.0 if has_model else 0.4)
 
-    def update_model_status(self, model_name):
+    def update_model_status(self, model_name, is_loading=False):
         if not hasattr(self, 'model_status_label'): return
         if model_name:
             self.model_status_label.setText(model_name)
-            self.model_status_label.setStyleSheet("color: #E6A23C; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            color = "#E6A23C" if is_loading else "#67C23A"
+            self.model_status_label.setStyleSheet(f"color: {color}; font-weight: bold; font-size: 14px; background: transparent; border: none;")
         else:
             self.model_status_label.setText("Unselected")
             self.model_status_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
