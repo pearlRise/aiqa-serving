@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import QFrame, QHBoxLayout, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QCursor, QFont
-from view.components.common_ui import GlassFrame
+from view.components.ui_common import GlassFrame
 
 class IndicatorInfoCell(QFrame):
     def __init__(self, parent=None):

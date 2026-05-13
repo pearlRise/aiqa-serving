@@ -1,10 +1,11 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QGridLayout, QLabel, QFrame, QGraphicsOpacityEffect, QPushButton)
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
-from view.components.common_ui import SmoothScrollArea, GlassFrame, SmoothRoundButton
-from view.components.menu_ui import IndicatorInfoCell, MenuListItem
+from view.components.ui_common import SmoothScrollArea, GlassFrame, SmoothRoundButton
+from view.components.ui_menu import IndicatorInfoCell, MenuListItem
 from view.configuration.menu_list_ollama import OLLAMA_MENUS
 from view.configuration.menu_list_mlx import MLX_MENUS
+from view.components.ui_dynamicIsland import DynamicIsland
 
 class HomeView(QWidget):
     chat_requested = Signal()
@@ -206,42 +207,13 @@ class HomeView(QWidget):
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-        self.island = QFrame(self.container)
-        self.island.setFixedSize(120, 26)
-        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
-        self.island.raise_()
-
-        self.exclaim_btn = SmoothRoundButton("!", self.container)
-        self.exclaim_btn.setStyleSheet("""
-            QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding: 0px; }
-        """)
-        
-        self.question_btn = SmoothRoundButton("?", self.container)
-        self.question_btn.setStyleSheet("""
-            QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding-bottom: 3px; }
-        """)
-
-        self.close_btn = SmoothRoundButton("✕", self.container)
-        self.close_btn.setStyleSheet("""
-            QPushButton { background: transparent; font-size: 14px; font-weight: bold; color: white; border: none; padding-bottom: 2px; }
-        """)
-        self.close_btn.clicked.connect(lambda: self.window().close())
-
-        self.exclaim_btn.raise_()
-        self.question_btn.raise_()
-        self.close_btn.raise_()
+        self.dynamic_island = DynamicIsland(self.container, left_text="!", mid_text="?")
+        self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        island_x = (self.width() - 120) // 2
-        if hasattr(self, 'island'):
-            self.island.move(island_x, 11)
-        if hasattr(self, 'exclaim_btn'):
-            self.exclaim_btn.move(island_x - 31, 11)
-        if hasattr(self, 'question_btn'):
-            self.question_btn.move(island_x + 125, 11)
-        if hasattr(self, 'close_btn'):
-            self.close_btn.move(island_x + 156, 11)
+        if hasattr(self, 'dynamic_island'):
+            self.dynamic_island.update_position(self.width())
 
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:

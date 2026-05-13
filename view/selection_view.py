@@ -2,8 +2,9 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
-from view.components.common_ui import SmoothScrollArea, SmoothRoundButton
-from view.components.menu_ui import MenuListItem
+from view.components.ui_common import SmoothScrollArea, SmoothRoundButton
+from view.components.ui_menu import MenuListItem
+from view.components.ui_dynamicIsland import DynamicIsland
 
 class SelectionView(QWidget):
     back_requested = Signal()
@@ -82,25 +83,9 @@ class SelectionView(QWidget):
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-        self.island = QFrame(self.container)
-        self.island.setFixedSize(120, 26)
-        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
-        self.island.raise_()
-
-        self.back_btn = SmoothRoundButton("←", self.container)
-        self.back_btn.setStyleSheet("QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding: 0px; }")
-        self.back_btn.clicked.connect(lambda: self.back_requested.emit())
-        
-        self.menu_btn = SmoothRoundButton("≡", self.container)
-        self.menu_btn.setStyleSheet("QPushButton { background: transparent; font-size: 17px; color: white; border: none; padding-bottom: 3px; }")
-
-        self.close_btn = SmoothRoundButton("✕", self.container)
-        self.close_btn.setStyleSheet("QPushButton { background: transparent; font-size: 14px; font-weight: bold; color: white; border: none; padding-bottom: 2px; }")
-        self.close_btn.clicked.connect(lambda: self.window().close())
-
-        self.back_btn.raise_()
-        self.menu_btn.raise_()
-        self.close_btn.raise_()
+        self.dynamic_island = DynamicIsland(self.container)
+        self.dynamic_island.left_btn.clicked.connect(lambda: self.back_requested.emit())
+        self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
 
     def update_model_list(self, models, active_model=None):
         while self.scroll_layout.count():
@@ -142,15 +127,8 @@ class SelectionView(QWidget):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        island_x = (self.width() - 120) // 2
-        if hasattr(self, 'island'):
-            self.island.move(island_x, 11)
-        if hasattr(self, 'back_btn'):
-            self.back_btn.move(island_x - 31, 11)
-        if hasattr(self, 'menu_btn'):
-            self.menu_btn.move(island_x + 125, 11)
-        if hasattr(self, 'close_btn'):
-            self.close_btn.move(island_x + 156, 11)
+        if hasattr(self, 'dynamic_island'):
+            self.dynamic_island.update_position(self.width())
 
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:

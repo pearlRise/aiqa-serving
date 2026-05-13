@@ -2,8 +2,10 @@ from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QScrollArea, QFrame, QGraphicsOpacityEffect, QLabel
 )
 from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
-from view.components.common_ui import SmoothScrollArea, SmoothRoundButton
-from view.components.chat_ui import ChatItem, CustomInput
+from view.components.ui_common import SmoothScrollArea, SmoothRoundButton
+from view.components.ui_chatting import ChatItem, CustomInput
+from view.components.ui_dynamicIsland import DynamicIsland
+from view.components.ui_internalMenu import InternalMenu
 
 class ChatView(QWidget):
     def __init__(self):
@@ -27,21 +29,9 @@ class ChatView(QWidget):
         self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
         self.main_layout.addWidget(self.top_bar)
 
-        self.back_btn = SmoothRoundButton("←", self.container)
-        self.back_btn.setStyleSheet("""
-            QPushButton { background: transparent; font-size: 15px; color: white; border: none; padding: 0px; }
-        """)
-        
-        self.menu_btn = SmoothRoundButton("≡", self.container)
-        self.menu_btn.setStyleSheet("""
-            QPushButton { background: transparent; font-size: 17px; color: white; border: none; padding-bottom: 3px; }
-        """)
-
-        self.close_btn = SmoothRoundButton("✕", self.container)
-        self.close_btn.setStyleSheet("""
-            QPushButton { background: transparent; font-size: 14px; font-weight: bold; color: white; border: none; padding-bottom: 2px; }
-        """)
-        self.close_btn.clicked.connect(lambda: self.window().close())
+        self.dynamic_island = DynamicIsland(self.container)
+        self.dynamic_island.right_btn.clicked.connect(lambda: self.window().close())
+        self.back_btn = self.dynamic_island.left_btn # AppController 와의 호환성 유지
 
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -87,66 +77,8 @@ class ChatView(QWidget):
         self.scroll.setWidget(self.chat_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-        self.dropdown_menu = QFrame(self.container)
-        self.dropdown_menu.setFixedSize(180, 200)
-        self.dropdown_menu.setStyleSheet("""
-            QFrame { background-color: #FFFFFF; border: 1px solid #B0C4DE; border-radius: 12px; }
-        """)
-        self.dropdown_menu.hide()
-
-        self.dropdown_scroll = SmoothScrollArea()
-        self.dropdown_scroll.setWidgetResizable(True)
-        self.dropdown_scroll.setFrameShape(QFrame.NoFrame)
-        self.dropdown_scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAlwaysOn)
-        self.dropdown_scroll.setStyleSheet("""
-            QScrollArea { border: none; background: transparent; }
-            QScrollBar:vertical {
-                border: none; background: transparent; width: 6px; margin: 4px 0px 4px 0px;
-            }
-            QScrollBar::handle:vertical {
-                background: rgba(0, 0, 0, 0.3); border-radius: 3px; min-height: 20px;
-            }
-            QScrollBar::handle:vertical:hover { background: rgba(0, 0, 0, 0.5); }
-            QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical,
-            QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-                height: 0px; background: none;
-            }
-        """)
-
-        self.dropdown_scroll_effect = QGraphicsOpacityEffect(self.dropdown_scroll.verticalScrollBar())
-        self.dropdown_scroll.verticalScrollBar().setGraphicsEffect(self.dropdown_scroll_effect)
-        self.dropdown_scroll_effect.setOpacity(0.0)
-        
-        self.dropdown_scroll_timer = QTimer(self)
-        self.dropdown_scroll_timer.setSingleShot(True)
-        self.dropdown_scroll_timer.timeout.connect(self.hide_dropdown_scrollbar)
-        
-        self.dropdown_scrollbar_anim = QPropertyAnimation(self.dropdown_scroll_effect, b"opacity")
-        self.dropdown_scrollbar_anim.setDuration(300)
-        self.dropdown_scrollbar_anim.setStartValue(1.0)
-        self.dropdown_scrollbar_anim.setEndValue(0.0)
-        
-        self.dropdown_scroll.verticalScrollBar().valueChanged.connect(self.show_dropdown_scrollbar)
-        self.dropdown_scroll.verticalScrollBar().rangeChanged.connect(self.show_dropdown_scrollbar)
-        
-        self.dropdown_content = QWidget()
-        self.dropdown_content.setStyleSheet("background: transparent;")
-        self.dropdown_layout = QVBoxLayout(self.dropdown_content)
-        self.dropdown_layout.setContentsMargins(8, 8, 8, 8)
-        self.dropdown_layout.setSpacing(4)
-        
-        for i in range(1, 16):
-            lbl = QLabel(f"Dummy Item {i}")
-            lbl.setStyleSheet("padding: 8px; font-size: 13px; color: #333333; background: #F5F7F9; border-radius: 6px; border: none;")
-            self.dropdown_layout.addWidget(lbl)
-            
-        self.dropdown_scroll.setWidget(self.dropdown_content)
-        
-        self.dropdown_main_layout = QVBoxLayout(self.dropdown_menu)
-        self.dropdown_main_layout.setContentsMargins(0, 0, 0, 0)
-        self.dropdown_main_layout.addWidget(self.dropdown_scroll)
-        
-        self.menu_btn.clicked.connect(self.toggle_dropdown)
+        self.internal_menu = InternalMenu(self.container)
+        self.dynamic_island.mid_btn.clicked.connect(lambda: self.internal_menu.toggle(self.width()))
 
         self.resize_timer = QTimer(self)
         self.resize_timer.setSingleShot(True)
@@ -184,15 +116,6 @@ class ChatView(QWidget):
 
         self.input_field.setFocus()
         
-        self.island = QFrame(self.container)
-        self.island.setFixedSize(120, 26)
-        self.island.setStyleSheet("background-color: black; border-radius: 13px;")
-        self.island.raise_()
-        
-        self.back_btn.raise_()
-        self.menu_btn.raise_()
-        self.close_btn.raise_()
-
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:
             self.scrollbar_anim.stop()
@@ -201,23 +124,6 @@ class ChatView(QWidget):
 
     def hide_scrollbar(self):
         self.scrollbar_anim.start()
-
-    def show_dropdown_scrollbar(self, *args):
-        if self.dropdown_scrollbar_anim.state() == QPropertyAnimation.Running:
-            self.dropdown_scrollbar_anim.stop()
-        self.dropdown_scroll_effect.setOpacity(1.0)
-        self.dropdown_scroll_timer.start(1500)
-
-    def hide_dropdown_scrollbar(self):
-        self.dropdown_scrollbar_anim.start()
-
-    def toggle_dropdown(self):
-        if self.dropdown_menu.isHidden():
-            self.dropdown_menu.move(self.width() - 196, 50)
-            self.dropdown_menu.show()
-            self.dropdown_menu.raise_()
-        else:
-            self.dropdown_menu.hide()
 
     def add_chat_bubble(self, text, is_me, sender_name=""):
         current_sender_id = "ME" if is_me else sender_name
@@ -270,19 +176,11 @@ class ChatView(QWidget):
     def resizeEvent(self, event):
         super().resizeEvent(event)
         
-        island_x = (self.width() - 120) // 2
-        
-        if hasattr(self, 'island'):
-            self.island.move(island_x, 11)
-        if hasattr(self, 'back_btn'):
-            self.back_btn.move(island_x - 31, 11)
-        if hasattr(self, 'menu_btn'):
-            self.menu_btn.move(island_x + 125, 11)
-        if hasattr(self, 'close_btn'):
-            self.close_btn.move(island_x + 156, 11)
+        if hasattr(self, 'dynamic_island'):
+            self.dynamic_island.update_position(self.width())
             
-        if hasattr(self, 'dropdown_menu') and not self.dropdown_menu.isHidden():
-            self.dropdown_menu.move(self.width() - 196, 50)
+        if hasattr(self, 'internal_menu'):
+            self.internal_menu.update_position(self.width())
             
         if self.width() != self.last_width:
             self.last_width = self.width()
