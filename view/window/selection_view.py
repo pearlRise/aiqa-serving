@@ -46,6 +46,15 @@ class SelectionView(QWidget):
         none_item.clicked.connect(self.model_selected.emit)
         self.scroll_layout.addWidget(none_item)
 
+        if engine == "Ollama":
+            create_item = MenuButton("➕", "Create Model", "Build a new modelfile")
+            create_item.clicked.connect(self.model_selected.emit)
+            self.scroll_layout.addWidget(create_item)
+        elif engine == "MLX":
+            config_item = MenuButton("⚙️", "Model Configuration", "Configure model parameters")
+            config_item.clicked.connect(self.model_selected.emit)
+            self.scroll_layout.addWidget(config_item)
+
         if not models:
             info_label = QLabel(NO_MODELS_MSG)
             info_label.setStyleSheet("color: #8E8E93; font-size: 12px; background: transparent; border: none; padding: 20px;")
@@ -53,7 +62,12 @@ class SelectionView(QWidget):
             info_label.setWordWrap(True)
             self.scroll_layout.addWidget(info_label)
         else:
-            for model in sorted(models, key=lambda x: x.get('name', '')):
+            def sort_key(m):
+                size_bytes = m.get('size', 0)
+                size_gb = round(size_bytes / (1024**3), 2)
+                return (-size_gb, m.get('name', '').lower())
+                
+            for model in sorted(models, key=sort_key):
                 model_name = model.get('name', UNKNOWN_MODEL_NAME)
                 model_size = model.get('size', 0)
 
@@ -68,15 +82,6 @@ class SelectionView(QWidget):
                     item.set_active(True, is_loading)
                 item.clicked.connect(self.model_selected.emit)
                 self.scroll_layout.addWidget(item)
-                
-        if engine == "Ollama":
-            create_item = MenuButton("➕", "Create Model", "Build a new modelfile")
-            create_item.clicked.connect(self.model_selected.emit)
-            self.scroll_layout.addWidget(create_item)
-        elif engine == "MLX":
-            config_item = MenuButton("⚙️", "Model Configuration", "Configure model parameters")
-            config_item.clicked.connect(self.model_selected.emit)
-            self.scroll_layout.addWidget(config_item)
 
     def set_active_model(self, active_model_name, is_loading=False):
         for i in range(self.scroll_layout.count()):

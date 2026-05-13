@@ -4,6 +4,7 @@ import time
 from PySide6.QtCore import QObject, QTimer, QEvent, QThread, Signal
 from PySide6.QtWidgets import QApplication
 from core.ollama_manager import ServerManager
+from core.mlx_manager import MlxManager
 from core.chat_controller import ChatController
 from view.components.ui_main_window import MainWindow
 
@@ -52,14 +53,45 @@ class ModelWorker(QThread):
             
         self.finished.emit()
 
+class MlxModelWorker(QThread):
+    finished = Signal()
+    status_flag = Signal(str, str, str)
+
+    def __init__(self, mlx_manager, action, target_model):
+        super().__init__()
+        self.mlx = mlx_manager
+        self.action = action
+        self.target_model = target_model
+        self.is_cancelled = False
+
+    def run(self):
+        try:
+            if self.action == 'load':
+                self.status_flag.emit("mlx_model_worker", "start", "Loading...")
+                self.mlx.load_model(self.target_model)
+                if self.is_cancelled:
+                    self.mlx.unload_model()
+                    self.status_flag.emit("mlx_model_worker", "end", "Cancelled")
+                else:
+                    self.status_flag.emit("mlx_model_worker", "end", "Loaded")
+            elif self.action == 'unload':
+                self.status_flag.emit("mlx_model_worker", "start", "Unloading...")
+                self.mlx.unload_model()
+                self.status_flag.emit("mlx_model_worker", "end", "Unloaded")
+        except Exception as e:
+            self.status_flag.emit("mlx_model_worker", "exception", "Exception")
+            
+        self.finished.emit()
+
 class AppController(QObject):
     def __init__(self):
         super().__init__()
         self.window = MainWindow()
         self.ollama = ServerManager()
+        self.mlx = MlxManager()
         atexit.register(self.ollama.stop_server)
         
-        self.chat_logic = ChatController(self.ollama)
+        self.chat_logic = ChatController(self.ollama, self.mlx)
         self.model_worker = None
         
         self.is_server_starting = False
@@ -84,7 +116,7 @@ class AppController(QObject):
         self.window.chat_view.input_field.returnPressed.connect(self.handle_send_message)
         self.window.dynamic_island.left_btn.clicked.connect(self.handle_back_requested)
         
-        self.chat_logic.thinking_started.connect(lambda: self.window.chat_view.add_chat_bubble("{...}", is_me=False, sender_name="Gemma"))
+        self.chat_logic.thinking_started.connect(lambda: self.window.chat_view.add_chat_bubble("Thinking...", is_me=False, sender_name="Gemma"))
         self.chat_logic.chunk_delivered.connect(self.window.chat_view.update_last_bubble_stream)
         self.chat_logic.status_flag.connect(self.handle_task_status)
         
@@ -130,7 +162,7 @@ class AppController(QObject):
         text = self.window.chat_view.input_field.toPlainText().strip()
         if text:
             self.window.chat_view.add_chat_bubble(text, is_me=True)
-            self.chat_logic.process_message(text)
+            self.chat_logic.process_message(text, self.current_engine)
             self.window.chat_view.input_field.clear()
 
     def handle_model_selection(self, model_name):
@@ -172,16 +204,45 @@ class AppController(QObject):
             self.model_worker.finished.connect(self._on_model_op_finished)
             self.model_worker.start()
         else:
+            if self.model_worker and self.model_worker.isRunning():
+                self.cancel_model_loading()
+                return
+
+            action = None
+            target_model = None
+            current_model = getattr(self, 'mlx_active_model', None)
+
             if model_name == "Unload":
-                self.mlx_active_model = None
+                if current_model:
+                    action = 'unload'
             else:
-                if getattr(self, 'mlx_active_model', None) == model_name: self.mlx_active_model = None
-                else: self.mlx_active_model = model_name
-            active = self.mlx_active_model
+                if current_model == model_name:
+                    action = 'unload'
+                else:
+                    action = 'load'
+                    target_model = model_name
             
-            self.window.selection_view.set_active_model(active if active else "Unload", is_loading=False)
-            self.window.home_view.update_model_status(active, is_loading=False)
-            self.check_ollama_status()
+            if not action:
+                return
+
+            self.window.home_view.update_model_status(target_model if target_model else "Unload", is_loading=True)
+            self.window.selection_view.set_active_model(target_model if target_model else "Unload", is_loading=True)
+            
+            self.model_worker = MlxModelWorker(self.mlx, action, target_model)
+            self.model_worker.status_flag.connect(self.handle_task_status)
+            self.model_worker.finished.connect(self._on_mlx_model_op_finished)
+            self.model_worker.start()
+
+    def _on_mlx_model_op_finished(self):
+        active = self.mlx.active_model
+        self.mlx_active_model = active
+        self.window.selection_view.set_active_model(active if active else "Unload", is_loading=False)
+        self.window.home_view.update_model_status(active, is_loading=False)
+        self.check_ollama_status()
+
+        if self.model_worker:
+            self.model_worker.deleteLater()
+            self.model_worker = None
 
     def _on_model_op_finished(self):
         active = self.ollama.active_model

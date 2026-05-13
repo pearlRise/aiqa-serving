@@ -84,7 +84,7 @@ class ChatView(QWidget):
     def update_last_bubble_stream(self, chunk):
         if self.last_chat_item and not self.last_chat_item.is_me:
             current_text = self.last_chat_item.bubble.toPlainText()
-            if current_text == "{...}":
+            if current_text == "Thinking...":
                 new_text = chunk
             else:
                 new_text = current_text + chunk
