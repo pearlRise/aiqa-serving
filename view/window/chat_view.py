@@ -90,7 +90,7 @@ class ChatView(QWidget):
                 new_text = current_text + chunk
             self.last_chat_item.update_text(new_text)
             self.last_chat_item.update_width(self.width())
-            self.scroll_to_bottom()
+            QTimer.singleShot(0, self.scroll_to_bottom)
 
     def adjust_input_height(self):
         doc = self.input_field.document()

@@ -49,6 +49,7 @@ class ModelWorker(QThread):
                 self.ollama.unload_model(self.target_model if self.target_model else self.current_model)
                 self.status_flag.emit("model_worker", "end", "Unloaded")
         except Exception as e:
+            print(f"ModelWorker Error: {e}")
             self.status_flag.emit("model_worker", "exception", "Exception")
             
         self.finished.emit()
@@ -79,6 +80,7 @@ class MlxModelWorker(QThread):
                 self.mlx.unload_model()
                 self.status_flag.emit("mlx_model_worker", "end", "Unloaded")
         except Exception as e:
+            print(f"MlxModelWorker Error: {e}")
             self.status_flag.emit("mlx_model_worker", "exception", "Exception")
             
         self.finished.emit()
@@ -156,7 +158,8 @@ class AppController(QObject):
     def cancel_model_loading(self):
         if self.model_worker and self.model_worker.isRunning():
             self.model_worker.is_cancelled = True
-            self.handle_task_status("model_worker", "start", "Cancelling...")
+            task_id = "mlx_model_worker" if isinstance(self.model_worker, MlxModelWorker) else "model_worker"
+            self.handle_task_status(task_id, "start", "Cancelling...")
 
     def handle_send_message(self):
         text = self.window.chat_view.input_field.toPlainText().strip()

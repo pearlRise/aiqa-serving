@@ -22,6 +22,7 @@ class ChatWorker(QThread):
                 self.chunk_received.emit(chunk)
             self.status_flag.emit("chat_worker", "end", "Generated")
         except Exception as e:
+            print(f"ChatWorker Error: {e}")
             self.status_flag.emit("chat_worker", "exception", "Exception")
 
 class MlxChatWorker(QThread):
@@ -45,6 +46,7 @@ class MlxChatWorker(QThread):
                 self.chunk_received.emit(chunk)
             self.status_flag.emit("chat_worker", "end", "Generated")
         except Exception as e:
+            print(f"MlxChatWorker Error: {e}")
             self.status_flag.emit("chat_worker", "exception", "Exception")
 
 class ChatController(QObject):
