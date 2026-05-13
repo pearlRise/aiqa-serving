@@ -12,7 +12,7 @@ class ChatWorker(QThread):
 
     def run(self):
         if not self.ollama.is_running():
-            self.chunk_received.emit("🧐 Please run server first!")
+            print("ChatWorker Error: Ollama server is not running.")
             self.status_flag.emit("chat_worker", "exception", "Exception")
             return
 
@@ -36,7 +36,7 @@ class MlxChatWorker(QThread):
 
     def run(self):
         if not self.mlx.active_model:
-            self.chunk_received.emit("🧐 Please load a model first!")
+            print("MlxChatWorker Error: MLX model is not loaded.")
             self.status_flag.emit("chat_worker", "exception", "Exception")
             return
 
@@ -72,12 +72,12 @@ class ChatController(QObject):
         
         if engine == "Ollama":
             if not self.ollama.active_model:
-                self.chunk_delivered.emit("🧐 Please choose a model from the 'Choose Model' menu first!")
+                print("ChatController Error: No Ollama model selected.")
                 return
             self.worker = ChatWorker(self.ollama, self.ollama.active_model, text)
         else:
             if not self.mlx or not self.mlx.active_model:
-                self.chunk_delivered.emit("🧐 Please choose an MLX model from the 'Choose Model' menu first!")
+                print("ChatController Error: No MLX model selected.")
                 return
             self.worker = MlxChatWorker(self.mlx, text)
 

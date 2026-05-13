@@ -62,7 +62,7 @@ class MainWindow(QMainWindow):
         if self.is_chat_active or self.is_selection_active or self.is_template_active:
             self.slide_to_home()
         else:
-            pass # TODO: Info 모달 팝업 등을 연동할 예정
+            pass
 
     def resizeEvent(self, event):
         super().resizeEvent(event)

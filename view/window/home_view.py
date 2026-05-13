@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton, QGraphicsOpacityEffect)
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
+from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal, QSize
 from PySide6.QtGui import QFont
 from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_glass_frame import GlassFrame
@@ -14,6 +14,69 @@ MENUS = [
     ("⚙️", "Settings", "Configure app theme and paths", None),
     ("🧩", "Template View", "Navigate to dummy template view", "template"),
 ]
+
+class MarqueeLabel(QWidget):
+    def __init__(self, text="", parent=None):
+        super().__init__(parent)
+        self.setAttribute(Qt.WA_ClipsChildren, True)
+        self.label1 = QLabel(self)
+        self.label1.setText(text)
+        self.label2 = QLabel(self)
+        self.label2.setText(text)
+        self.label2.hide()
+        
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(self.scroll_text)
+        self.timer.start(30)
+        
+        self.x_pos = 0
+        self.spacing = 30
+        
+    def setStyleSheet(self, style):
+        self.label1.setStyleSheet(style)
+        self.label2.setStyleSheet(style)
+        super().setStyleSheet("background: transparent; border: none;")
+        
+    def setAlignment(self, alignment):
+        self.label1.setAlignment(alignment)
+        self.label2.setAlignment(alignment)
+        
+    def setText(self, text):
+        self.label1.setText(text)
+        self.label2.setText(text)
+        self.label1.adjustSize()
+        self.label2.adjustSize()
+        self.x_pos = 0
+        self.update_labels()
+        
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_labels()
+        
+    def update_labels(self):
+        self.label1.adjustSize()
+        self.label2.adjustSize()
+        if self.label1.width() > self.width() and self.width() > 0:
+            self.label2.show()
+        else:
+            self.label2.hide()
+            self.x_pos = 0
+            self.label1.move(0, (self.height() - self.label1.height()) // 2)
+            
+    def scroll_text(self):
+        if self.label1.width() > self.width() and self.width() > 0:
+            self.x_pos -= 1
+            if abs(self.x_pos) >= self.label1.width() + self.spacing:
+                self.x_pos = 0
+            y = (self.height() - self.label1.height()) // 2
+            self.label1.move(self.x_pos, y)
+            self.label2.move(self.x_pos + self.label1.width() + self.spacing, y)
+
+    def sizeHint(self):
+        return QSize(50, self.label1.sizeHint().height())
+        
+    def minimumSizeHint(self):
+        return QSize(10, self.label1.minimumSizeHint().height())
 
 class HomeView(QWidget):
     chat_requested = Signal()
@@ -101,7 +164,10 @@ class HomeView(QWidget):
             text_layout.setAlignment(Qt.AlignCenter)
             text_layout.setSpacing(2)
             
-            val_label = QLabel(value)
+            if title == "Model":
+                val_label = MarqueeLabel(value)
+            else:
+                val_label = QLabel(value)
             val_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
             val_label.setAlignment(Qt.AlignLeft)
             

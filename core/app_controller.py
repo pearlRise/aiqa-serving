@@ -306,7 +306,8 @@ class AppController(QObject):
     def check_ollama_status(self):
         if self.current_engine == "MLX":
             self.update_server_ui("stopped")
-            self.window.home_view.update_model_status(None)
+            active_mlx = getattr(self, 'mlx_active_model', None)
+            self.window.home_view.update_model_status(active_mlx)
             return
 
         if self.ollama.is_running():
