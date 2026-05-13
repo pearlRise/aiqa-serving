@@ -5,7 +5,6 @@ from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
 from view.components.common_ui import SmoothScrollArea, SmoothRoundButton
 from view.components.chat_ui import ChatItem, CustomInput
 
-# 4.1 채팅 인터페이스 전체 레이아웃 및 스크롤 영역 관리
 class ChatView(QWidget):
     def __init__(self):
         super().__init__()
@@ -185,7 +184,6 @@ class ChatView(QWidget):
 
         self.input_field.setFocus()
         
-        # 4.1.1 다이내믹 아일랜드 UI 구성 (각 화면마다 개별 배치)
         self.island = QFrame(self.container)
         self.island.setFixedSize(120, 26)
         self.island.setStyleSheet("background-color: black; border-radius: 13px;")
@@ -195,7 +193,6 @@ class ChatView(QWidget):
         self.menu_btn.raise_()
         self.close_btn.raise_()
 
-    # 4.2 스크롤바 페이드 인/아웃 제어 로직
     def show_scrollbar(self, *args):
         if self.scrollbar_anim.state() == QPropertyAnimation.Running:
             self.scrollbar_anim.stop()
@@ -222,7 +219,6 @@ class ChatView(QWidget):
         else:
             self.dropdown_menu.hide()
 
-    # 4.3 새로운 채팅 말풍선 추가 및 연속 메시지 그룹화
     def add_chat_bubble(self, text, is_me, sender_name=""):
         current_sender_id = "ME" if is_me else sender_name
         is_consecutive = (self.last_sender_id == current_sender_id)
@@ -239,7 +235,6 @@ class ChatView(QWidget):
         
         QTimer.singleShot(10, self.scroll_to_bottom)
 
-    # 4.3.1 마지막 AI 말풍선의 내용을 실시간으로 갱신 (Streaming)
     def update_last_bubble_stream(self, chunk):
         if self.last_chat_item and not self.last_chat_item.is_me:
             current_text = self.last_chat_item.bubble.toPlainText()
@@ -251,7 +246,6 @@ class ChatView(QWidget):
             self.last_chat_item.update_width(self.width())
             self.scroll_to_bottom()
 
-    # 4.4 입력 내용에 따른 입력창 높이 동적 조절
     def adjust_input_height(self):
         doc = self.input_field.document()
         doc_height = doc.size().height()
@@ -261,7 +255,6 @@ class ChatView(QWidget):
         else:
             new_height = max(44, min(120, int(doc_height) + 26))
             
-        # 1.3 입력창이 최대 높이(120px)에 도달했을 때만 스크롤바 노출
         self.input_field.setVerticalScrollBarPolicy(
             Qt.ScrollBarAsNeeded if new_height >= 120 else Qt.ScrollBarAlwaysOff
         )
@@ -274,7 +267,6 @@ class ChatView(QWidget):
         scrollbar = self.scroll.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
     
-    # 4.5 창 크기 변경 시 성능 최적화를 위한 지연 처리(Debounce)
     def resizeEvent(self, event):
         super().resizeEvent(event)
         
@@ -301,10 +293,8 @@ class ChatView(QWidget):
                 if isinstance(widget, ChatItem):
                     widget.needs_width_update = True
             
-            # 디바운싱: 드래그가 멈추고 100ms 후에 한 번만 재계산
             self.resize_timer.start(100)
 
-    # 4.6 현재 가시 영역에 있는 말풍선 위젯만 선택적 갱신
     def update_visible_bubbles(self):
         scroll_y = self.scroll.verticalScrollBar().value()
         viewport_height = self.scroll.viewport().height()

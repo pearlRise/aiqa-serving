@@ -78,7 +78,6 @@ class SelectionView(QWidget):
         self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
         
-        # 모델 리스트는 MainController에서 `update_model_list`를 통해 동적으로 채워집니다.
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
@@ -104,7 +103,6 @@ class SelectionView(QWidget):
         self.close_btn.raise_()
 
     def update_model_list(self, models, active_model=None):
-        # 기존 위젯 모두 삭제
         while self.scroll_layout.count():
             item = self.scroll_layout.takeAt(0)
             widget = item.widget()
@@ -119,7 +117,6 @@ class SelectionView(QWidget):
             self.scroll_layout.addWidget(info_label)
             return
 
-        # 모델 이름순으로 정렬하여 추가
         for model in sorted(models, key=lambda x: x.get('name', '')):
             model_name = model.get('name', 'Unknown Model')
             model_size = model.get('size', 0)

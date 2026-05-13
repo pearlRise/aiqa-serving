@@ -18,7 +18,6 @@ class TemplateView(QWidget):
         base_layout.setContentsMargins(0, 0, 0, 0)
         base_layout.addWidget(self.container)
         
-        # 1. 메인 프레임 및 둥근 테두리 설정
         self.container.setStyleSheet("""
             #MainBody { 
                 background-color: #000000; 
@@ -31,13 +30,11 @@ class TemplateView(QWidget):
         self.main_layout.setContentsMargins(0, 0, 0, 21) 
         self.main_layout.setSpacing(0)
 
-        # 2. 상단 영역 (Top Bar)
         self.top_bar = QFrame(self.container)
         self.top_bar.setFixedHeight(48)
         self.top_bar.setStyleSheet("QFrame { background-color: #212121; border: none; border-top-left-radius: 47px; border-top-right-radius: 47px; }")
         self.main_layout.addWidget(self.top_bar)
 
-        # 3. 스크롤 영역 및 스크롤바 애니메이션
         self.scroll = SmoothScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setFrameShape(QFrame.NoFrame)
@@ -80,7 +77,6 @@ class TemplateView(QWidget):
         self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
         
-        # 4. 더미 메뉴 10개 구성
         for i in range(1, 11):
             item = MenuListItem("📝", f"Template Menu {i}", "This is a dummy description.")
             self.scroll_layout.addWidget(item)
@@ -88,7 +84,6 @@ class TemplateView(QWidget):
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-        # 5. 다이내믹 아일랜드 및 상단 제어 버튼 (뒤로가기, 메뉴, 종료)
         self.island = QFrame(self.container)
         self.island.setFixedSize(120, 26)
         self.island.setStyleSheet("background-color: black; border-radius: 13px;")
@@ -109,7 +104,6 @@ class TemplateView(QWidget):
         self.menu_btn.raise_()
         self.close_btn.raise_()
 
-    # 6. 창 크기 변경 시 아일랜드 및 버튼 위치 중앙 정렬
     def resizeEvent(self, event):
         super().resizeEvent(event)
         island_x = (self.width() - 120) // 2

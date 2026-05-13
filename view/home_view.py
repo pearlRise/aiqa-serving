@@ -3,8 +3,9 @@ from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
 from PySide6.QtGui import QFont
 from view.components.common_ui import SmoothScrollArea, GlassFrame, SmoothRoundButton
 from view.components.menu_ui import IndicatorInfoCell, MenuListItem
+from view.configuration.menu_list_ollama import OLLAMA_MENUS
+from view.configuration.menu_list_mlx import MLX_MENUS
 
-# 4.1 메인 홈 인터페이스 레이아웃 관리
 class HomeView(QWidget):
     chat_requested = Signal()
     serve_requested = Signal()
@@ -15,7 +16,6 @@ class HomeView(QWidget):
         self.container = QWidget()
         self.container.setObjectName("MainBody")
         
-        # 자신(self)의 바탕 레이아웃을 만들고 컨테이너를 꽉 채워 넣음
         base_layout = QVBoxLayout(self)
         base_layout.setContentsMargins(0, 0, 0, 0)
         base_layout.addWidget(self.container)
@@ -81,7 +81,6 @@ class HomeView(QWidget):
         self.scroll_layout.setSpacing(12) 
         self.scroll_layout.setAlignment(Qt.AlignTop)
 
-        # 4.2 사용자 환영 문구 및 배너 영역
         self.banner = GlassFrame(radius=16)
         self.banner.setFixedHeight(80)
         banner_layout = QHBoxLayout(self.banner)
@@ -106,7 +105,68 @@ class HomeView(QWidget):
         
         self.scroll_layout.addWidget(self.banner)
 
-        # 4.2.1 백엔드 엔진 선택 메뉴 (Ollama / MLX)
+        self.indicator_dashboard = GlassFrame(radius=16)
+        self.indicator_dashboard.setFixedHeight(64)
+
+        self.dashboard_layout = QHBoxLayout(self.indicator_dashboard)
+        self.dashboard_layout.setContentsMargins(0, 0, 0, 0)
+        self.dashboard_layout.setSpacing(0) 
+
+        indicators_data = [
+            ("⌛️", "Server", "Loading"),
+            ("🧠", "Model", "Loading")
+        ]
+        
+        for idx, (icon, title, value) in enumerate(indicators_data):
+            cell = IndicatorInfoCell()
+            
+            line_color = "rgba(255, 255, 255, 0.1)"
+            border_style = "border: none; border-radius: 0px;"
+            if idx == 0: 
+                border_style += f"border-right: 1px solid {line_color};"
+            
+            cell.setStyleSheet(f"IndicatorInfoCell {{ background: transparent; {border_style} }}")
+            
+            cell_layout = QHBoxLayout(cell)
+            cell_layout.setContentsMargins(0, 0, 0, 0) 
+            cell_layout.setAlignment(Qt.AlignCenter)
+            cell_layout.setSpacing(8)
+            
+            icon_label = QLabel(icon)
+            icon_font = QFont("Apple Color Emoji", 19)
+            icon_label.setFont(icon_font)
+            icon_label.setAlignment(Qt.AlignCenter)
+            icon_label.setStyleSheet("background: transparent; border: none;")
+            
+            text_layout = QVBoxLayout()
+            text_layout.setAlignment(Qt.AlignCenter)
+            text_layout.setSpacing(2)
+            
+            val_label = QLabel(value)
+            val_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
+            val_label.setAlignment(Qt.AlignLeft)
+            
+            title_label = QLabel(title)
+            title_label.setStyleSheet("color: #8E8E93; font-size: 11px; background: transparent; border: none;")
+            title_label.setAlignment(Qt.AlignLeft)
+            
+            if title == "Server":
+                self.server_icon_label = icon_label
+                self.server_status_label = val_label
+            elif title == "Model":
+                self.model_icon_label = icon_label
+                self.model_status_label = val_label
+            
+            text_layout.addWidget(val_label)
+            text_layout.addWidget(title_label)
+            
+            cell_layout.addWidget(icon_label)
+            cell_layout.addLayout(text_layout)
+            
+            self.dashboard_layout.addWidget(cell)
+        
+        self.scroll_layout.addWidget(self.indicator_dashboard)
+
         self.engine_frame = GlassFrame(radius=16)
         self.engine_frame.setFixedHeight(64)
         engine_layout = QHBoxLayout(self.engine_frame)
@@ -134,114 +194,18 @@ class HomeView(QWidget):
         engine_layout.addWidget(self.engine_toggle_btn)
         
         self.scroll_layout.addWidget(self.engine_frame)
-
-        # 4.3 서버 상태 및 시스템 정보 대시보드
-        self.indicator_dashboard = GlassFrame(radius=20)
-        self.indicator_dashboard.setMinimumHeight(220)
-
-        self.dashboard_layout = QGridLayout(self.indicator_dashboard)
-        self.dashboard_layout.setContentsMargins(15, 15, 15, 15)
-        self.dashboard_layout.setSpacing(0) 
-
-        indicators_data = [
-            ("⌛️", "Server", "Loading"),
-            ("⚡", "Memory", "Loading"),
-            ("🧠", "Model", "Loading"),
-            ("🌡️", "System", "Loading")
-        ]
         
-        for idx, (icon, title, value) in enumerate(indicators_data):
-            row, col = idx // 2, idx % 2
-            
-            cell = IndicatorInfoCell()
-            cell.setFixedHeight(95)
-            
-            line_color = "rgba(255, 255, 255, 0.1)"
-            border_style = "border: none; border-radius: 0px;"
-            if col == 0: 
-                border_style += f"border-right: 1px solid {line_color};"
-            if row == 0: 
-                border_style += f"border-bottom: 1px solid {line_color};"
-            
-            cell.setStyleSheet(f"IndicatorInfoCell {{ background: transparent; {border_style} }}")
-            
-            cell_layout = QVBoxLayout(cell)
-            cell_layout.setContentsMargins(0, 10, 0, 10) 
-            cell_layout.setAlignment(Qt.AlignCenter)
-            cell_layout.setSpacing(4)
-            
-            icon_label = QLabel(icon)
-            icon_font = QFont("Apple Color Emoji", 19)
-            icon_label.setFont(icon_font)
-            icon_label.setFixedHeight(28) 
-            icon_label.setAlignment(Qt.AlignCenter)
-            icon_label.setStyleSheet("background: transparent; border: none;")
-            
-            val_label = QLabel(value)
-            val_label.setStyleSheet("color: #FFFFFF; font-weight: bold; font-size: 14px; background: transparent; border: none;")
-            val_label.setAlignment(Qt.AlignCenter)
-            
-            if title == "Server":
-                self.server_icon_label = icon_label
-                self.server_status_label = val_label
-            elif title == "Model":
-                self.model_icon_label = icon_label
-                self.model_status_label = val_label
-            
-            title_label = QLabel(title)
-            title_label.setStyleSheet("color: #8E8E93; font-size: 11px; background: transparent; border: none;")
-            title_label.setAlignment(Qt.AlignCenter)
-            
-            cell_layout.addWidget(icon_label)
-            cell_layout.addWidget(val_label)
-            cell_layout.addWidget(title_label)
-            
-            self.dashboard_layout.addWidget(cell, row, col)
-        
-        self.scroll_layout.addWidget(self.indicator_dashboard)
-        
-        # 4.4 주요 기능 접근 메뉴 리스트
         self.menu_layout = QVBoxLayout()
         self.menu_layout.setSpacing(12)
         
-        menus = [
-            ("🚀", "Ollama Serve", "백그라운드 서버 구동 및 중지"),
-            ("💬", "Ollama Chat", "현재 활성화된 모델과 대화하기"),
-            ("🌐", "Choose Model", "생성된 모델을 활성화하기"),
-            ("🔨", "Create Model", "새로운 커스텀 모델 빌드"),
-            ("📝", "Edit Prompt", "모델의 시스템 프롬프트 편집하기"),
-            ("⚙️", "Settings", "앱 기본 테마 및 경로 설정"),
-            ("🧩", "Template View", "더미 템플릿 화면으로 이동"),
-        ]
-        
-        for icon, title, sub in menus:
-            item = MenuListItem(icon, title, sub)
-
-            if title == "Ollama Serve":
-                self.serve_item = item
-                item.clicked.connect(lambda _: self.serve_requested.emit())
-
-            if title == "Ollama Chat":
-                self.chat_item = item
-                item.clicked.connect(lambda _: self.chat_requested.emit())
-
-            if title == "Choose Model":
-                self.choose_model_item = item
-                self.choose_model_effect = QGraphicsOpacityEffect()
-                self.choose_model_item.setGraphicsEffect(self.choose_model_effect)
-                item.clicked.connect(lambda _: self.selection_requested.emit())
-
-            if title == "Template View":
-                item.clicked.connect(lambda _: self.template_requested.emit())
-
-            self.menu_layout.addWidget(item)
-            
         self.scroll_layout.addLayout(self.menu_layout)
+
+        self.current_server_status = "stopped"
+        self.update_engine_menus("Ollama")
 
         self.scroll.setWidget(self.scroll_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-        # 4.5 다이내믹 아일랜드 UI 구성 (각 화면마다 개별 배치)
         self.island = QFrame(self.container)
         self.island.setFixedSize(120, 26)
         self.island.setStyleSheet("background-color: black; border-radius: 13px;")
@@ -267,7 +231,6 @@ class HomeView(QWidget):
         self.question_btn.raise_()
         self.close_btn.raise_()
 
-    # 4.6 창 크기 변경에 따른 아일랜드 위치 재조정
     def resizeEvent(self, event):
         super().resizeEvent(event)
         island_x = (self.width() - 120) // 2
@@ -289,15 +252,40 @@ class HomeView(QWidget):
     def hide_scrollbar(self):
         self.scrollbar_anim.start()
 
-    # 4.7 엔진 토글에 따른 동적 메뉴 이름 변경
     def update_engine_menus(self, engine_name):
-        if hasattr(self, 'serve_item'):
-            self.serve_item.title_label.setText(f"{engine_name} Serve")
-        if hasattr(self, 'chat_item'):
-            self.chat_item.title_label.setText(f"{engine_name} Chat")
+        while self.menu_layout.count():
+            item = self.menu_layout.takeAt(0)
+            widget = item.widget()
+            if widget:
+                widget.deleteLater()
+                
+        menus = OLLAMA_MENUS if engine_name == "Ollama" else MLX_MENUS
+        
+        for icon, title, sub, action in menus:
+            item = MenuListItem(icon, title, sub)
+            
+            if action == "serve":
+                self.serve_item = item
+                item.clicked.connect(lambda _: self.serve_requested.emit())
+            elif action == "chat":
+                self.chat_item = item
+                self.chat_effect = QGraphicsOpacityEffect()
+                self.chat_item.setGraphicsEffect(self.chat_effect)
+                item.clicked.connect(lambda _: self.chat_requested.emit())
+            elif action == "selection":
+                self.choose_model_item = item
+                self.choose_model_effect = QGraphicsOpacityEffect()
+                self.choose_model_item.setGraphicsEffect(self.choose_model_effect)
+                item.clicked.connect(lambda _: self.selection_requested.emit())
+            elif action == "template":
+                item.clicked.connect(lambda _: self.template_requested.emit())
+                
+            self.menu_layout.addWidget(item)
+            
+        self.update_server_status(getattr(self, 'current_server_status', 'stopped'))
 
-    # 4.5 서버 상태에 따른 대시보드 UI 실시간 업데이트
     def update_server_status(self, status):
+        self.current_server_status = status
         if not hasattr(self, 'server_status_label'): 
             return
             
@@ -318,6 +306,11 @@ class HomeView(QWidget):
             is_running = (status == "running")
             self.choose_model_item.setEnabled(is_running)
             self.choose_model_effect.setOpacity(1.0 if is_running else 0.4)
+            
+        if hasattr(self, 'chat_item'):
+            is_running = (status == "running")
+            self.chat_item.setEnabled(is_running)
+            self.chat_effect.setOpacity(1.0 if is_running else 0.4)
 
     def update_model_status(self, model_name):
         if not hasattr(self, 'model_status_label'): return
