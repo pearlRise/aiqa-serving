@@ -41,6 +41,11 @@ class ChatView(QWidget):
         self.resize_timer.timeout.connect(self.update_visible_bubbles)
         self.last_width = self.width()
 
+        # UI 렌더링 병목 해소를 위한 스트리밍 청크 버퍼 및 타이머
+        self.stream_buffer = ""
+        self.stream_timer = QTimer(self)
+        self.stream_timer.timeout.connect(self.flush_stream_buffer)
+
         self.scroll.verticalScrollBar().valueChanged.connect(self.update_visible_bubbles)
 
         self.input_container = QWidget()
@@ -90,14 +95,24 @@ class ChatView(QWidget):
 
     def update_last_bubble_stream(self, chunk):
         if self.last_chat_item and not self.last_chat_item.is_me:
-            current_text = self.last_chat_item.bubble.toPlainText()
-            if current_text == "Thinking...":
-                new_text = chunk
-            else:
-                new_text = current_text + chunk
-            self.last_chat_item.update_text(new_text)
-            self.last_chat_item.update_width(self.width())
-            QTimer.singleShot(0, self.scroll_to_bottom)
+            # 매 토큰마다 무거운 UI 레이아웃 연산을 하지 않고 버퍼에 누적 후 타이머 시작
+            self.stream_buffer += chunk
+            if not self.stream_timer.isActive():
+                self.stream_timer.start(50)  # 50ms (초당 20프레임) 간격으로 한 번에 갱신
+
+    def flush_stream_buffer(self):
+        if not self.stream_buffer or not self.last_chat_item:
+            self.stream_timer.stop()
+            return
+            
+        current_text = self.last_chat_item.bubble.toPlainText()
+        new_text = self.stream_buffer if current_text == "Thinking..." else current_text + self.stream_buffer
+        self.last_chat_item.update_text(new_text)
+        self.last_chat_item.update_width(self.width())
+        QTimer.singleShot(0, self.scroll_to_bottom)
+        
+        self.stream_buffer = ""
+        self.stream_timer.stop()
 
     def adjust_input_height(self):
         doc = self.input_field.document()

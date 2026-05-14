@@ -21,11 +21,11 @@ class TPSMeter:
         self.first_token_time = None
         self.token_count = 0
 
-    def record_token(self):
+    def record_token(self, count=1):
         if not self.is_active: return
         if self.first_token_time is None:
             self.first_token_time = time.time()
-        self.token_count += 1
+        self.token_count += count
 
     def stop(self, engine_name="Engine"):
         if not self.is_active or not self.start_time or not self.first_token_time:
