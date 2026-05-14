@@ -10,6 +10,7 @@ from datetime import datetime
 from PySide6.QtWidgets import QFrame, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextBrowser
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPainter, QPainterPath, QColor, QTextOption
+from view.components.ui_marquee_label import MarqueeLabel
 
 # 발신자, 수신자에 맞게 꼬리가 달린 말풍선 벡터 도형 렌더링 프레임
 class BubbleFrame(QFrame):
@@ -49,7 +50,7 @@ class ChatItem(QWidget):
         self.main_layout.setContentsMargins(0, 4 if is_consecutive else 12, 0, 0)
         self.main_layout.setSpacing(2)
         if not is_me and not is_consecutive and sender_name:
-            self.name_label = QLabel(sender_name)
+            self.name_label = MarqueeLabel(sender_name)
             self.name_label.setStyleSheet("color: #8E8E93; font-size: 11px; font-weight: bold; margin-left: 12px;")
             self.main_layout.addWidget(self.name_label)
         self.bubble_hlayout = QHBoxLayout()
@@ -91,6 +92,8 @@ class ChatItem(QWidget):
         self.bg_layout.setContentsMargins(*margin)
         self.bubble.setFixedSize(actual_text_width, text_height)
         self.bg_frame.setFixedSize(actual_text_width + (self.padding_x * 2) + self.tail_width, text_height + (self.padding_y * 2))
+        if hasattr(self, 'name_label'):
+            self.name_label.setMaximumWidth(int(window_width * 0.688))
         self.setFixedHeight(self.main_layout.sizeHint().height())
         
     # 연속 메시지 시 이전 메시지의 꼬리와 시간 숨김 처리
