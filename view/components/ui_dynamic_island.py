@@ -1,10 +1,19 @@
+#============================================================
+# - subject: ui_dynamic_island.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Custom dynamic island UI for progress tracking.
+# - caution: Manage task timers to prevent memory leaks.
+#============================================================
 import time
 from PySide6.QtWidgets import QWidget, QFrame, QVBoxLayout, QLabel
 from PySide6.QtCore import Qt, QTimer
 from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_marquee_label import MarqueeLabel
 
+# 화면 상단에서 작업 상태, 뒤로 가기, 메뉴 진입을 담당하는 오버레이 컴포넌트
 class DynamicIsland(QWidget):
+    # 아일랜드 컨테이너 및 프로그레스 애니메이션 요소, 버튼 초기화
     def __init__(self, parent=None, left_text="i", mid_text="≡", right_text="✕"):
         super().__init__(parent)
         
@@ -37,6 +46,7 @@ class DynamicIsland(QWidget):
         self.progress_timer.timeout.connect(self._update_progress)
         self.progress_val = 0
 
+        # 다수의 백그라운드 작업 상태를 저장하여 우선순위 관리
         self.active_tasks = []
         self.task_info = {}
 
@@ -57,6 +67,7 @@ class DynamicIsland(QWidget):
         
         self.setFixedSize(213, 26)
 
+    # 무한히 우측으로 흐르는 프로그레스 바 애니메이션 틱 계산
     def _update_progress(self):
         max_x = self.progress_track.width()
         
@@ -66,7 +77,16 @@ class DynamicIsland(QWidget):
             
         self.progress_chunk.move(self.progress_val, 0)
 
+    # 특정 ID의 작업을 등록하고 상태 표시(텍스트/로딩바) 시작
     def show_progress(self, task_id, text):
+        """
+        POLICY - Background Task Priority (LIFO)
+        1. Policy Description
+            - Manages the display queue of multiple concurrent background tasks.
+        2. Policy Constraints
+            - New incoming tasks must suspend the existing task's UI updates and be shown at the top.
+            - To prevent timer conflicts and memory leaks, existing timers for the task must be stopped and deleted (`deleteLater`) immediately.
+        """
         if task_id in self.task_info and 'timer' in self.task_info[task_id]:
             self.task_info[task_id]['timer'].stop()
             self.task_info[task_id]['timer'].deleteLater()
@@ -82,7 +102,16 @@ class DynamicIsland(QWidget):
         }
         self._update_display()
 
+    # 특정 ID 작업 종료 시 텍스트를 업데이트하고 즉시 또는 지연 숨김
     def hide_progress(self, task_id, end_text=None, fill_bar=False):
+        """
+        POLICY - UI Anti-Flicker Prevention
+        1. Policy Description
+            - Ensures smooth visual transitions for the dynamic island when tasks end.
+        2. Policy Constraints
+            - If a task completes in less than 1.0 second, it causes a visual flicker.
+            - The top exposed task must be delayed using a `QTimer` for the remaining duration before hiding to prevent this abrupt UI change.
+        """
         if task_id not in self.task_info: return
         
         if end_text:
@@ -94,6 +123,7 @@ class DynamicIsland(QWidget):
         elapsed = time.time() - self.task_info[task_id]['start_time']
         is_top = (self.active_tasks and self.active_tasks[-1] == task_id)
         
+        # 작업이 너무 빨리 종료되어 깜빡임이 생기는 것을 방지하는 최소 노출 타이머
         if elapsed < 1.0 and is_top:
             delay_ms = int((1.0 - elapsed) * 1000)
             timer = QTimer(self)
@@ -104,6 +134,7 @@ class DynamicIsland(QWidget):
         else:
             self._remove_task(task_id)
 
+    # 작업 큐 및 정보에서 완전히 제거하고 UI 상태 갱신
     def _remove_task(self, task_id):
         if task_id in self.active_tasks:
             self.active_tasks.remove(task_id)
@@ -114,6 +145,7 @@ class DynamicIsland(QWidget):
             del self.task_info[task_id]
         self._update_display()
         
+    # 큐에 남은 작업이 있다면 표시 갱신, 없다면 완전히 숨김 처리
     def _update_display(self):
         if self.active_tasks:
             top_task = self.active_tasks[-1]
@@ -137,6 +169,7 @@ class DynamicIsland(QWidget):
             self.progress_track.hide()
             self.progress_timer.stop()
 
+    # 메인 윈도우 리사이즈 시 중앙 상단에 아일랜드 정렬 유지
     def update_position(self, parent_width):
         island_x = (parent_width - 120) // 2
         self.move(island_x - 31, 11)

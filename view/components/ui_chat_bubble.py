@@ -1,14 +1,24 @@
+#============================================================
+# - subject: ui_chat_bubble.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Renders dynamic chat message bubbles and text.
+# - caution: Word wrapping logic needs careful sizing.
+#============================================================
 import math
 from datetime import datetime
 from PySide6.QtWidgets import QFrame, QWidget, QVBoxLayout, QHBoxLayout, QLabel, QTextBrowser
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QPainter, QPainterPath, QColor, QTextOption
 
+# 발신자, 수신자에 맞게 꼬리가 달린 말풍선 벡터 도형 렌더링 프레임
 class BubbleFrame(QFrame):
     def __init__(self, is_me):
         super().__init__()
         self.is_me, self.has_tail = is_me, True
         self.setAttribute(Qt.WA_TranslucentBackground)
+        
+    # QPainterPath를 사용해 둥근 말풍선 외곽선과 꼬리 좌표 그리기
     def paintEvent(self, event):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.Antialiasing)
@@ -29,7 +39,9 @@ class BubbleFrame(QFrame):
             path.addRoundedRect(0 if self.is_me else t, 0, w - t, h, r, r)
         painter.fillPath(path, QColor("#FEE500") if self.is_me else QColor("#FFFFFF"))
 
+# 발신자 텍스트와 시간, 말풍선 백그라운드를 포함하는 메시지 전체 컨테이너
 class ChatItem(QWidget):
+    # 텍스트 높이 및 넓이 초기 측정 후 컴포넌트 배치
     def __init__(self, text, is_me=False, sender_name="", is_consecutive=False):
         super().__init__()
         self.is_me, self.is_consecutive = is_me, is_consecutive
@@ -53,6 +65,7 @@ class ChatItem(QWidget):
         self.doc = self.bubble.document(); self.doc.setDefaultFont(font); self.doc.setDocumentMargin(0)
         option = QTextOption(); option.setWrapMode(QTextOption.WrapAnywhere); self.doc.setDefaultTextOption(option)
         self.bubble.setPlainText(text); self.doc.setTextWidth(-1)
+        # 자동 줄바꿈 전 순수 한 줄 텍스트 너비 저장
         self.pure_ideal_width = math.ceil(self.doc.idealWidth())
         self.bg_layout.addWidget(self.bubble)
         self.time_label = QLabel(datetime.now().strftime("%H:%M"))
@@ -68,6 +81,7 @@ class ChatItem(QWidget):
         self.update_width(305)
         self.needs_width_update = False
         
+    # 윈도우 크기에 맞춰 말풍선의 텍스트 WordWrap 및 패딩 갱신
     def update_width(self, window_width=305):
         max_text_width = int(window_width * 0.688) - (self.padding_x * 2) - self.tail_width
         actual_text_width = min(self.pure_ideal_width, max_text_width) + 2
@@ -79,5 +93,8 @@ class ChatItem(QWidget):
         self.bg_frame.setFixedSize(actual_text_width + (self.padding_x * 2) + self.tail_width, text_height + (self.padding_y * 2))
         self.setFixedHeight(self.main_layout.sizeHint().height())
         
+    # 연속 메시지 시 이전 메시지의 꼬리와 시간 숨김 처리
     def remove_tail_and_time(self): self.bg_frame.has_tail = False; self.bg_frame.update(); self.time_label.hide()
+    
+    # 스트리밍 시 텍스트 갱신 및 폭 재계산
     def update_text(self, text): self.bubble.setPlainText(text); self.doc.setTextWidth(-1); self.pure_ideal_width = math.ceil(self.doc.idealWidth())

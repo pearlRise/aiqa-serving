@@ -1,3 +1,10 @@
+#============================================================
+# - subject: app_controller.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Orchestrates UI events and LLM manager logic.
+# - caution: Ensure safe QThread and Ollama process exits.
+#============================================================
 import os
 import atexit
 import time
@@ -8,10 +15,12 @@ from core.mlx_manager import MlxManager
 from core.chat_controller import ChatController
 from view.components.ui_main_window import MainWindow
 
+# Ollama 모델 로드, 언로드, 스위칭을 비동기로 처리하는 백그라운드 워커
 class ModelWorker(QThread):
     finished = Signal()
     status_flag = Signal(str, str, str)
 
+    # 워커 초기화 및 대상 모델 설정
     def __init__(self, ollama_manager, action, target_model, current_model=None):
         super().__init__()
         self.ollama = ollama_manager
@@ -20,8 +29,10 @@ class ModelWorker(QThread):
         self.current_model = current_model
         self.is_cancelled = False
 
+    # 워커 실행: action 값에 따라 비동기로 모델 상태 변경 처리
     def run(self):
         try:
+            # 1. 스위칭: 기존 모델 언로드 후 새 모델 로드
             if self.action == 'switch':
                 if self.current_model:
                     self.status_flag.emit("model_worker", "start", "Unloading...")
@@ -35,6 +46,7 @@ class ModelWorker(QThread):
                 else:
                     self.status_flag.emit("model_worker", "end", "Loaded")
 
+            # 2. 로드: 새 모델 로드
             elif self.action == 'load':
                 self.status_flag.emit("model_worker", "start", "Loading...")
                 self.ollama.load_model(self.target_model)
@@ -44,20 +56,24 @@ class ModelWorker(QThread):
                 else:
                     self.status_flag.emit("model_worker", "end", "Loaded")
 
+            # 3. 언로드: 현재 모델 언로드
             elif self.action == 'unload':
                 self.status_flag.emit("model_worker", "start", "Unloading...")
                 self.ollama.unload_model(self.target_model)
                 self.status_flag.emit("model_worker", "end", "Unloaded")
         except Exception as e:
+            # 모델 작업 중 발생한 예외 처리 및 UI 예외 상태 전송
             print(f"ModelWorker Error: {e}")
             self.status_flag.emit("model_worker", "exception", "Exception")
             
         self.finished.emit()
 
+# MLX 모델 로드 및 언로드를 비동기로 처리하는 백그라운드 워커
 class MlxModelWorker(QThread):
     finished = Signal()
     status_flag = Signal(str, str, str)
 
+    # MLX 워커 초기화 및 대상 모델 설정
     def __init__(self, mlx_manager, action, target_model):
         super().__init__()
         self.mlx = mlx_manager
@@ -65,8 +81,10 @@ class MlxModelWorker(QThread):
         self.target_model = target_model
         self.is_cancelled = False
 
+    # 워커 실행: MLX 모델의 로드/언로드 동작 수행
     def run(self):
         try:
+            # 1. 로드: MLX 모델 로드 및 취소 시 언로드 롤백
             if self.action == 'load':
                 self.status_flag.emit("mlx_model_worker", "start", "Loading...")
                 self.mlx.load_model(self.target_model)
@@ -75,17 +93,21 @@ class MlxModelWorker(QThread):
                     self.status_flag.emit("mlx_model_worker", "end", "Cancelled")
                 else:
                     self.status_flag.emit("mlx_model_worker", "end", "Loaded")
+            # 2. 언로드: MLX 모델 언로드
             elif self.action == 'unload':
                 self.status_flag.emit("mlx_model_worker", "start", "Unloading...")
                 self.mlx.unload_model()
                 self.status_flag.emit("mlx_model_worker", "end", "Unloaded")
         except Exception as e:
+            # MLX 작업 중 발생한 예외 처리 및 UI 예외 상태 전송
             print(f"MlxModelWorker Error: {e}")
             self.status_flag.emit("mlx_model_worker", "exception", "Exception")
             
         self.finished.emit()
 
+# UI와 비즈니스 로직(Ollama/MLX)을 중재하는 메인 컨트롤러
 class AppController(QObject):
+    # 앱 초기화 및 시그널 연결, 상태 모니터링 타이머 시작
     def __init__(self):
         super().__init__()
         self.window = MainWindow()
@@ -98,7 +120,9 @@ class AppController(QObject):
         
         self.is_server_starting = False
         self.is_server_stopping = False
+        # 현재 활성화된 LLM 엔진 상태 (상태 추적 핵심 변수)
         self.current_engine = "MLX"
+        # 현재 로드된 MLX 모델의 이름 (상태 추적 핵심 변수)
         self.mlx_active_model = None
 
         self._connect_signals()
@@ -113,6 +137,7 @@ class AppController(QObject):
         
         QTimer.singleShot(100, self.check_ollama_status)
 
+    # UI 이벤트와 컨트롤러 내부 비즈니스 로직을 시그널로 연결
     def _connect_signals(self):
         self.window.chat_view.send_btn.clicked.connect(self.handle_send_message)
         self.window.chat_view.input_field.returnPressed.connect(self.handle_send_message)
@@ -132,6 +157,7 @@ class AppController(QObject):
         
         self.window.close_requested = self.handle_close_event
 
+    # 마우스 휠 이벤트를 가로채서 특정 조건 시 홈 화면으로 슬라이드 복귀
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Wheel:
             if event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
@@ -142,22 +168,26 @@ class AppController(QObject):
                     return True
         return super().eventFilter(obj, event)
         
+    # 다이내믹 아일랜드에 백그라운드 작업 진행 상태를 표시하거나 숨김
     def handle_task_status(self, task_id, flag_type, text):
         if flag_type == "start":
             self.window.dynamic_island.show_progress(task_id, text)
         elif flag_type in ["end", "exception"]:
             self.window.dynamic_island.hide_progress(task_id, end_text=text, fill_bar=True)
 
+    # 다이내믹 아일랜드 뒤로가기 버튼 클릭 시 모델 로딩 취소 처리
     def handle_back_requested(self):
         if self.window.is_selection_active:
             self.cancel_model_loading()
             
+    # 진행 중인 모델 로딩 워커(Ollama 또는 MLX) 작업을 강제로 취소
     def cancel_model_loading(self):
         if self.model_worker and self.model_worker.isRunning():
             self.model_worker.is_cancelled = True
             task_id = "mlx_model_worker" if isinstance(self.model_worker, MlxModelWorker) else "model_worker"
             self.handle_task_status(task_id, "start", "Cancelling...")
 
+    # 채팅 입력 메시지를 뷰에 추가하고 LLM 엔진(워커)으로 텍스트 전달
     def handle_send_message(self):
         text = self.window.chat_view.input_field.toPlainText().strip()
         if text:
@@ -165,10 +195,21 @@ class AppController(QObject):
             self.chat_logic.process_message(text, self.current_engine)
             self.window.chat_view.input_field.clear()
 
+    # 사용자가 선택한 모델에 따라 로드/언로드 워커를 조건부 실행
     def handle_model_selection(self, model_name):
+        """
+        POLICY - Asynchronous Model Transition
+        1. Policy Description
+            - Manages the switching of LLM models safely without blocking the UI.
+            - Coordinates load, unload, and switch actions based on the current engine state.
+        2. Policy Constraints
+            - Existing QThread workers must be canceled before starting a new operation.
+            - To prevent Out-Of-Memory (OOM) errors, the currently active model must always be unloaded before a new model is loaded.
+        """
         if model_name in ["Create Model", "Model Configuration"]:
             return
             
+        # 1. Ollama 엔진일 경우 작업 결정 및 워커 실행
         if self.current_engine == "Ollama":
             if self.model_worker and self.model_worker.isRunning():
                 self.cancel_model_loading()
@@ -178,6 +219,7 @@ class AppController(QObject):
             target_model = None
             current_model = self.ollama.active_model
 
+            # 1.1 선택된 모델과 현재 모델 비교하여 액션 할당
             if model_name == "Unload":
                 if current_model:
                     action = 'unload'
@@ -204,6 +246,7 @@ class AppController(QObject):
             self.model_worker.finished.connect(self._on_model_op_finished)
             self.model_worker.start()
         else:
+            # 2. MLX 엔진일 경우 작업 결정 및 워커 실행
             if self.model_worker and self.model_worker.isRunning():
                 self.cancel_model_loading()
                 return
@@ -212,6 +255,7 @@ class AppController(QObject):
             target_model = None
             current_model = self.mlx_active_model
 
+            # 2.1 선택된 모델과 현재 모델 비교하여 액션 할당
             if model_name == "Unload":
                 if current_model:
                     action = 'unload'
@@ -233,6 +277,7 @@ class AppController(QObject):
             self.model_worker.finished.connect(self._on_mlx_model_op_finished)
             self.model_worker.start()
 
+    # MLX 모델 로드/언로드 워커 종료 시 UI 상태 갱신 및 메모리 정리
     def _on_mlx_model_op_finished(self):
         active = self.mlx.active_model
         self.mlx_active_model = active
@@ -244,6 +289,7 @@ class AppController(QObject):
             self.model_worker.deleteLater()
             self.model_worker = None
 
+    # Ollama 모델 로드/언로드 워커 종료 시 UI 상태 갱신 및 메모리 정리
     def _on_model_op_finished(self):
         active = self.ollama.active_model
         self.window.selection_view.set_active_model(active if active else "Unload", is_loading=False)
@@ -254,6 +300,7 @@ class AppController(QObject):
             self.model_worker.deleteLater()
             self.model_worker = None
 
+    # 모델 선택 화면으로 이동 전, 엔진별 로컬 모델 목록을 UI에 갱신
     def slide_to_selection(self):
         if self.window.is_chat_active or self.window.is_selection_active: return
         
@@ -267,6 +314,7 @@ class AppController(QObject):
             self.window.selection_view.update_model_list(mlx_models, self.mlx_active_model, "MLX", is_loading=False)
         self.window.slide_to_selection()
 
+    # 로컬 디렉토리에서 폴더 용량을 계산해 MLX 모델 목록 객체로 반환
     def get_local_mlx_models(self):
         models = []
         mlx_dir = "models/mlx"
@@ -278,14 +326,25 @@ class AppController(QObject):
                     models.append({"name": entry, "size": size})
         return models
 
+    # Ollama 서버 시작/중지 토글 로직
     def toggle_ollama_serve(self):
+        """
+        POLICY - Server Lifecycle Management
+        1. Policy Description
+            - Controls the starting and stopping of the local Ollama server process.
+        2. Policy Constraints
+            - The server process may not terminate immediately upon a stop request.
+            - Must use `QApplication.processEvents()` while polling (up to 3 seconds) to prevent main thread UI freezing during termination.
+        """
         if self.current_engine == "Ollama":
             if not self.ollama.is_running():
+                # 1. 서버 실행: 프로세스 생성 및 로딩 상태 UI 반영
                 self.is_server_starting, self.is_server_stopping = True, False
                 self.update_server_ui("loading")
                 QApplication.processEvents()
                 self.ollama.start_server()
             else:
+                # 2. 서버 중지: 프로세스 종료 및 UI 갱신 (대기 포함)
                 self.is_server_starting, self.is_server_stopping = False, True
                 self.update_server_ui("loading")
                 QApplication.processEvents()
@@ -300,6 +359,7 @@ class AppController(QObject):
                 return
             print("MLX Serve mode: Logic not yet implemented.")
 
+    # 주기적으로 엔진 상태(Ollama 프로세스 등)를 확인하여 UI 반영
     def check_ollama_status(self):
         if self.current_engine == "MLX":
             self.update_server_ui("stopped")
@@ -320,10 +380,12 @@ class AppController(QObject):
             else:
                 self.is_server_stopping = False; self.update_server_ui("stopped"); self.window.home_view.update_model_status(None)
 
+    # 현재 엔진 상태에 맞춰 홈 화면 대시보드의 상태 UI 갱신
     def update_server_ui(self, status):
         has_model = (self.ollama.active_model is not None) if self.current_engine == "Ollama" else (self.mlx_active_model is not None)
         self.window.home_view.update_dashboard_state(self.current_engine, status, has_model)
 
+    # Ollama와 MLX 엔진 간 전환 토글 및 스타일 업데이트
     def toggle_engine(self):
         self.current_engine = "MLX" if self.current_engine == "Ollama" else "Ollama"
         style = "background-color: #FF9500;" if self.current_engine == "MLX" else "background-color: #007AFF;"
@@ -332,6 +394,7 @@ class AppController(QObject):
         self.window.home_view.engine_toggle_btn.setStyleSheet(f"QPushButton {{ {style} color: white; border-radius: 16px; font-weight: bold; font-size: 13px; border: none; }} QPushButton:hover {{ {hover} }}")
         self.check_ollama_status()
 
+    # 앱 닫기 이벤트 시 워커 취소 및 Ollama 서버 안전 종료 보장
     def handle_close_event(self, event):
         if self.model_worker and self.model_worker.isRunning():
             self.model_worker.is_cancelled = True
