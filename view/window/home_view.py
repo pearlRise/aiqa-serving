@@ -252,6 +252,7 @@ class HomeView(QWidget):
         for icon, title, sub, action in MENUS:
             item = MenuButton(icon, title, sub)
             if action == "chat":
+                self.chat_menu_btn = item
                 item.clicked.connect(lambda _: self.chat_requested.emit())
             elif action == "template":
                 item.clicked.connect(lambda _: self.template_requested.emit())
@@ -301,6 +302,11 @@ class HomeView(QWidget):
 
     def update_model_status(self, model_name, is_loading=False):
         if not hasattr(self, 'model_status_label'): return
+        
+        if hasattr(self, 'chat_menu_btn'):
+            can_chat = bool(model_name) and model_name != "Unload" and not is_loading
+            self.chat_menu_btn.setEnabled(can_chat)
+            
         if model_name:
             self.model_status_label.setText(model_name)
             color = "#E6A23C" if is_loading else "#67C23A"
