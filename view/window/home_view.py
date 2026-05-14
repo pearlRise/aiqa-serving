@@ -18,7 +18,6 @@ MENUS = [
 class MarqueeLabel(QWidget):
     def __init__(self, text="", parent=None):
         super().__init__(parent)
-        self.setAttribute(Qt.WA_ClipsChildren, True)
         self.label1 = QLabel(self)
         self.label1.setText(text)
         self.label2 = QLabel(self)

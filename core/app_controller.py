@@ -46,7 +46,7 @@ class ModelWorker(QThread):
 
             elif self.action == 'unload':
                 self.status_flag.emit("model_worker", "start", "Unloading...")
-                self.ollama.unload_model(self.target_model if self.target_model else self.current_model)
+                self.ollama.unload_model(self.target_model)
                 self.status_flag.emit("model_worker", "end", "Unloaded")
         except Exception as e:
             print(f"ModelWorker Error: {e}")
@@ -134,15 +134,12 @@ class AppController(QObject):
 
     def eventFilter(self, obj, event):
         if event.type() == QEvent.Wheel:
-            if obj == self.window.chat_view.scroll.viewport() and self.window.is_chat_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
-                self.window.slide_to_home()
-                return True
-            elif hasattr(self.window, 'selection_view') and obj == self.window.selection_view.scroll.viewport() and self.window.is_selection_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
-                self.window.slide_to_home()
-                return True
-            elif hasattr(self.window, 'template_view') and obj == self.window.template_view.scroll.viewport() and self.window.is_template_active and event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
-                self.window.slide_to_home()
-                return True
+            if event.angleDelta().x() > 40 and abs(event.angleDelta().y()) < 20:
+                if (obj == self.window.chat_view.scroll.viewport() and self.window.is_chat_active) or \
+                   (obj == self.window.selection_view.scroll.viewport() and self.window.is_selection_active) or \
+                   (obj == self.window.template_view.scroll.viewport() and self.window.is_template_active):
+                    self.window.slide_to_home()
+                    return True
         return super().eventFilter(obj, event)
         
     def handle_task_status(self, task_id, flag_type, text):
@@ -213,7 +210,7 @@ class AppController(QObject):
 
             action = None
             target_model = None
-            current_model = getattr(self, 'mlx_active_model', None)
+            current_model = self.mlx_active_model
 
             if model_name == "Unload":
                 if current_model:
@@ -267,7 +264,7 @@ class AppController(QObject):
             self.window.selection_view.update_model_list(self.ollama.get_local_models(), active_mod, "Ollama", is_loading=is_loading)
         else:
             mlx_models = self.get_local_mlx_models()
-            self.window.selection_view.update_model_list(mlx_models, getattr(self, 'mlx_active_model', None), "MLX", is_loading=False)
+            self.window.selection_view.update_model_list(mlx_models, self.mlx_active_model, "MLX", is_loading=False)
         self.window.slide_to_selection()
 
     def get_local_mlx_models(self):
@@ -299,14 +296,14 @@ class AppController(QObject):
                 self.is_server_stopping = False
                 self.check_ollama_status()
         elif self.current_engine == "MLX":
-            if not getattr(self, 'mlx_active_model', None):
+            if not self.mlx_active_model:
                 return
             print("MLX Serve mode: Logic not yet implemented.")
 
     def check_ollama_status(self):
         if self.current_engine == "MLX":
             self.update_server_ui("stopped")
-            active_mlx = getattr(self, 'mlx_active_model', None)
+            active_mlx = self.mlx_active_model
             self.window.home_view.update_model_status(active_mlx)
             return
 
@@ -324,7 +321,7 @@ class AppController(QObject):
                 self.is_server_stopping = False; self.update_server_ui("stopped"); self.window.home_view.update_model_status(None)
 
     def update_server_ui(self, status):
-        has_model = (self.ollama.active_model is not None) if self.current_engine == "Ollama" else (getattr(self, 'mlx_active_model', None) is not None)
+        has_model = (self.ollama.active_model is not None) if self.current_engine == "Ollama" else (self.mlx_active_model is not None)
         self.window.home_view.update_dashboard_state(self.current_engine, status, has_model)
 
     def toggle_engine(self):
