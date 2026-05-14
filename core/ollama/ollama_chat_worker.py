@@ -6,6 +6,7 @@
 # - caution: Safely handle thread cancellation to avoid crashes.
 #============================================================
 from PySide6.QtCore import QThread, Signal
+from core.exception_logging import log_error
 
 # Ollama 엔진에서 채팅 텍스트를 스트리밍으로 받아오는 백그라운드 워커
 class OllamaChatWorker(QThread):
@@ -23,7 +24,7 @@ class OllamaChatWorker(QThread):
     # 1. 서버 상태 체크 후 응답 스트리밍 수신 시작
     def run(self):
         if not self.ollama.is_running():
-            print("OllamaChatWorker Error: Ollama server is not running.")
+            log_error("Ollama server is not running")
             self.status_flag.emit("chat_worker", "exception", "Exception")
             return
 
@@ -38,5 +39,5 @@ class OllamaChatWorker(QThread):
             self.status_flag.emit("chat_worker", "end", "Generated")
         except Exception as e:
             # 연결 끊김, 모델 언로드 등 스트리밍 중 예외 처리
-            print(f"OllamaChatWorker Error: {e}")
+            log_error("Ollama streaming error", e)
             self.status_flag.emit("chat_worker", "exception", "Exception")

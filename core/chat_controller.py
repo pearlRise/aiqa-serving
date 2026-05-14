@@ -8,6 +8,7 @@
 from PySide6.QtCore import QObject, Signal
 from core.ollama.ollama_chat_worker import OllamaChatWorker
 from core.mlx.mlx_chat_worker import MlxChatWorker
+from core.exception_logging import log_error
 
 # 채팅 입력과 엔진(Ollama/MLX) 간의 처리를 중재하는 컨트롤러
 class ChatController(QObject):
@@ -37,13 +38,13 @@ class ChatController(QObject):
         # 1. Ollama 엔진이 선택된 경우 Ollama 워커 초기화
         if engine == "Ollama":
             if not self.ollama.active_model:
-                print("ChatController Error: No Ollama model selected.")
+                log_error("No Ollama model selected")
                 return
             self.worker = OllamaChatWorker(self.ollama, self.ollama.active_model, text)
         else:
             # 2. MLX 엔진이 선택된 경우 MLX 워커 초기화
             if not self.mlx or not self.mlx.active_model:
-                print("ChatController Error: No MLX model selected.")
+                log_error("No MLX model selected")
                 return
             self.worker = MlxChatWorker(self.mlx, text)
 

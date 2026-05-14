@@ -10,6 +10,7 @@ import requests
 import os
 import signal
 import json
+from core.exception_logging import log_error
 
 # Ollama의 프로세스 생명주기 및 API 통신을 전담하는 매니저
 class ServerManager:
@@ -66,7 +67,7 @@ class ServerManager:
             except ProcessLookupError:
                 pass
             except Exception as e:
-                print(f"Error while stopping server: {e}")
+                log_error("Error while stopping server", e)
             finally:
                 self.process = None
         
@@ -139,6 +140,6 @@ class ServerManager:
                             break
         except requests.exceptions.ConnectionError as e:
             # 통신 오류 시 프로세스 강제 종료 대비 예외 처리
-            print(f"Ollama ConnectionError: {e}")
+            log_error("Ollama connection error", e)
         except Exception as e:
-            print(f"Ollama Chat Stream Error: {e}")
+            log_error("Error in Ollama chat stream", e)

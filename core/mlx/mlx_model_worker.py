@@ -6,6 +6,7 @@
 # - caution: Safely handle thread cancellation to avoid crashes.
 #============================================================
 from PySide6.QtCore import QThread, Signal
+from core.exception_logging import log_error
 
 # MLX 모델 로드 및 언로드를 비동기로 처리하는 백그라운드 워커
 class MlxModelWorker(QThread):
@@ -39,7 +40,7 @@ class MlxModelWorker(QThread):
                 self.status_flag.emit("mlx_model_worker", "end", "Unloaded")
         except Exception as e:
             # MLX 작업 중 발생한 예외 처리 및 UI 예외 상태 전송
-            print(f"MlxModelWorker Error: {e}")
+            log_error("MLX model operation failed", e)
             self.status_flag.emit("mlx_model_worker", "exception", "Exception")
             
         self.finished.emit()

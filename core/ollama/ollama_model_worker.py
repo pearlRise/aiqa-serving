@@ -6,6 +6,7 @@
 # - caution: Safely handle thread cancellation to avoid crashes.
 #============================================================
 from PySide6.QtCore import QThread, Signal
+from core.exception_logging import log_error
 
 # Ollama 모델 로드, 언로드, 스위칭을 비동기로 처리하는 백그라운드 워커
 class OllamaModelWorker(QThread):
@@ -55,7 +56,7 @@ class OllamaModelWorker(QThread):
                 self.status_flag.emit("ollama_model_worker", "end", "Unloaded")
         except Exception as e:
             # 모델 작업 중 발생한 예외 처리 및 UI 예외 상태 전송
-            print(f"OllamaModelWorker Error: {e}")
+            log_error("Ollama model operation failed", e)
             self.status_flag.emit("ollama_model_worker", "exception", "Exception")
             
         self.finished.emit()
