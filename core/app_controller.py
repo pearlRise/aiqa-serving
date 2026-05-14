@@ -1,6 +1,6 @@
 #============================================================
 # - subject: app_controller.py
-# - created: 2026-05-14
+# - created: 2026-05-13
 # - updated: 2026-05-14
 # - summary: Orchestrates UI events and LLM manager logic.
 # - caution: Ensure safe QThread and Ollama process exits.

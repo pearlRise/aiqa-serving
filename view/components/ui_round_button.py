@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_round_button.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Smooth circular push button with hover states.
 # - caution: Custom painting requires antialiasing enabled.

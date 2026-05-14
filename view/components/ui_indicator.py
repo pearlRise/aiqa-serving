@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_indicator.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Clickable indicator cell for system statuses.
 # - caution: None.

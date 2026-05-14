@@ -1,6 +1,6 @@
 #============================================================
 # - subject: main.py
-# - created: 2026-05-14
+# - created: 2026-05-13
 # - updated: 2026-05-14
 # - summary: Main entry point for starting the application.
 # - caution: None.

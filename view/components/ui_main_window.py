@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_main_window.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Main borderless window with slide animations.
 # - caution: Handle custom resizing and window drag events.

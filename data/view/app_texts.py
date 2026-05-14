@@ -1,3 +1,10 @@
+#============================================================
+# - subject: app_texts.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Centralized configuration for UI text constants.
+# - caution: None.
+#============================================================
 BANNER_GREETING = "Welcome, Jihwan!"
 BANNER_SUBTITLE = "Ollama Control Center"
 ENGINE_TITLE = "Backend Engine"

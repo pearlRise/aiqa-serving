@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ollama_manager.py
-# - created: 2026-05-14
+# - created: 2026-05-13
 # - updated: 2026-05-14
 # - summary: Controls Ollama local server and API processes.
 # - caution: Carefully handle subprocess termination.
@@ -98,7 +98,7 @@ class ServerManager:
         if self.active_model and self.active_model != model_name:
             self.unload_model(self.active_model)
         try:
-            requests.post(f"{self.api_base}/generate", json={"model": model_name, "prompt": "", "keep_alive": -1}, timeout=120)
+            requests.post(f"{self.api_base}/generate", json={"model": model_name, "prompt": "", "keep_alive": -1, "options": {"temperature": 0.7}}, timeout=120)
             self.active_model = model_name
             return True
         except Exception:
@@ -124,7 +124,10 @@ class ServerManager:
             data = {
                 "model": model_name,
                 "prompt": prompt,
-                "stream": True 
+                "stream": True,
+                "options": {
+                    "temperature": 0.7
+                }
             }
             with requests.post(url, json=data, timeout=30, stream=True) as response:
                 # 청크 디코딩 후 response 필드만 추출

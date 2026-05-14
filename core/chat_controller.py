@@ -1,6 +1,6 @@
 #============================================================
 # - subject: chat_controller.py
-# - created: 2026-05-14
+# - created: 2026-05-13
 # - updated: 2026-05-14
 # - summary: Manages chat requests for Ollama and MLX.
 # - caution: Ensure QThread safety when streaming chunks.

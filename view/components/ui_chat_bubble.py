@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_chat_bubble.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Renders dynamic chat message bubbles and text.
 # - caution: Word wrapping logic needs careful sizing.

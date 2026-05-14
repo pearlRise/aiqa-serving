@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_marquee_label.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Scrolling text label for overflowing content.
 # - caution: Continuous QTimer usage may affect performance.

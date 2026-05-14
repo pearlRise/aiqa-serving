@@ -1,3 +1,10 @@
+#============================================================
+# - subject: ollama_chat_worker.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Background worker for async Ollama chat streaming.
+# - caution: Safely handle thread cancellation to avoid crashes.
+#============================================================
 from PySide6.QtCore import QThread, Signal
 
 # Ollama 엔진에서 채팅 텍스트를 스트리밍으로 받아오는 백그라운드 워커

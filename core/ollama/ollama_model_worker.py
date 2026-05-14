@@ -1,3 +1,10 @@
+#============================================================
+# - subject: ollama_model_worker.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Background worker for async Ollama model operations.
+# - caution: Safely handle thread cancellation to avoid crashes.
+#============================================================
 from PySide6.QtCore import QThread, Signal
 
 # Ollama 모델 로드, 언로드, 스위칭을 비동기로 처리하는 백그라운드 워커

@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_global_menu.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Global overlay menu for application settings.
 # - caution: Ensure proper geometry updates on window resize.

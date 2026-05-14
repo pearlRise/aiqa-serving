@@ -1,3 +1,10 @@
+#============================================================
+# - subject: chat_view.py
+# - created: 2026-05-11
+# - updated: 2026-05-14
+# - summary: Chat interface view with message bubbling and input.
+# - caution: Ensure width updates on window resize for bubbles.
+#============================================================
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QLabel
 )

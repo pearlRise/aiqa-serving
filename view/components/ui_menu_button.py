@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_menu_button.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Reusable glassy menu button with visual states.
 # - caution: Emits custom signals upon mouse release events.

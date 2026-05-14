@@ -1,3 +1,10 @@
+#============================================================
+# - subject: template_view.py
+# - created: 2026-05-11
+# - updated: 2026-05-14
+# - summary: Dummy view for prompt templates navigation.
+# - caution: None.
+#============================================================
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFrame
 )

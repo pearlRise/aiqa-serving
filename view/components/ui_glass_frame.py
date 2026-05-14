@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_glass_frame.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Semi-transparent glassy frame base component.
 # - caution: None.

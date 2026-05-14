@@ -1,13 +1,13 @@
 #============================================================
 # - subject: ui_chat_input.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Custom text input field for chat interactions.
 # - caution: Captures Enter key for submission without shift.
 #============================================================
 from PySide6.QtWidgets import QTextEdit, QFrame
 from PySide6.QtCore import Qt, Signal
-from view.configuration.app_texts import CHAT_PLACEHOLDER
+from data.view.app_texts import CHAT_PLACEHOLDER
 
 # Shift 미포함 Enter 입력 시 전송 이벤트를 발생시키는 커스텀 텍스트박스
 class CustomInput(QTextEdit):

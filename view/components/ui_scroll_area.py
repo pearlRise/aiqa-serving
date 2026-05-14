@@ -1,6 +1,6 @@
 #============================================================
 # - subject: ui_scroll_area.py
-# - created: 2026-05-14
+# - created: 2026-05-12
 # - updated: 2026-05-14
 # - summary: Smooth scrolling area with custom scrollbars.
 # - caution: QPropertyAnimation may cause scroll conflicts.

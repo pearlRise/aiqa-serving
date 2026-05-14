@@ -1,3 +1,10 @@
+#============================================================
+# - subject: mlx_model_worker.py
+# - created: 2026-05-14
+# - updated: 2026-05-14
+# - summary: Background worker for async MLX model operations.
+# - caution: Safely handle thread cancellation to avoid crashes.
+#============================================================
 from PySide6.QtCore import QThread, Signal
 
 # MLX 모델 로드 및 언로드를 비동기로 처리하는 백그라운드 워커

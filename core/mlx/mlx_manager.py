@@ -1,6 +1,6 @@
 #============================================================
 # - subject: mlx_manager.py
-# - created: 2026-05-14
+# - created: 2026-05-13
 # - updated: 2026-05-14
 # - summary: Loads Apple MLX models and handles text streams.
 # - caution: Requires mlx_lm library and valid model paths.
@@ -65,7 +65,7 @@ class MlxManager:
             mx.eval(self.model)
             
             # 최대 토큰 제한(1024)을 적용하여 텍스트 스트리밍 생성
-            response = stream_generate(self.model, self.tokenizer, prompt=prompt, max_tokens=1024)
+            response = stream_generate(self.model, self.tokenizer, prompt=prompt, max_tokens=1024, temp=0.7)
             for chunk in response:
                 yield chunk.text if hasattr(chunk, 'text') else str(chunk)
         except Exception as e:
