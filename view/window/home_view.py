@@ -6,11 +6,10 @@
 # - caution: None.
 #============================================================
 from PySide6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QPushButton, QGraphicsOpacityEffect)
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal, QSize
+from PySide6.QtCore import Qt, QTimer, Signal, QSize
 from PySide6.QtGui import QFont
 from view.components.ui_scroll_area import SmoothScrollArea
 from view.components.ui_glass_frame import GlassFrame
-from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_indicator import IndicatorInfoCell
 from view.components.ui_menu_button import MenuButton
 from data.view.app_texts import BANNER_GREETING, BANNER_SUBTITLE, ENGINE_TITLE, ENGINE_SUBTITLE

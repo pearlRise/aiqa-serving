@@ -8,9 +8,8 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFrame, QLabel
 )
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
+from PySide6.QtCore import Qt, Signal
 from view.components.ui_scroll_area import SmoothScrollArea
-from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_menu_button import MenuButton
 from data.view.app_texts import NO_MODELS_MSG, UNKNOWN_MODEL_NAME, UNKNOWN_MODEL_SIZE
 
@@ -50,16 +49,16 @@ class SelectionView(QWidget):
         none_item = MenuButton("🚫", "Unload", "Unload active model")
         if not active_model or active_model == "Unload":
             none_item.set_active(True, is_loading)
-        none_item.clicked.connect(self.model_selected.emit)
+        none_item.clicked.connect(lambda checked=False: self.model_selected.emit("Unload"))
         self.scroll_layout.addWidget(none_item)
 
         if engine == "Ollama":
             create_item = MenuButton("➕", "Create Model", "Build a new modelfile")
-            create_item.clicked.connect(self.model_selected.emit)
+            create_item.clicked.connect(lambda checked=False: self.model_selected.emit("Create Model"))
             self.scroll_layout.addWidget(create_item)
         elif engine == "MLX":
             config_item = MenuButton("⚙️", "Model Configuration", "Configure model parameters")
-            config_item.clicked.connect(self.model_selected.emit)
+            config_item.clicked.connect(lambda checked=False: self.model_selected.emit("Model Configuration"))
             self.scroll_layout.addWidget(config_item)
 
         if not models:
@@ -87,7 +86,7 @@ class SelectionView(QWidget):
                 item = MenuButton("🤖", model_name, subtitle)
                 if active_model == model_name:
                     item.set_active(True, is_loading)
-                item.clicked.connect(self.model_selected.emit)
+                item.clicked.connect(lambda checked=False, m=model_name: self.model_selected.emit(m))
                 self.scroll_layout.addWidget(item)
 
     def set_active_model(self, active_model_name, is_loading=False):

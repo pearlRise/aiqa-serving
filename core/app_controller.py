@@ -8,7 +8,7 @@
 import os
 import atexit
 import time
-from PySide6.QtCore import QObject, QTimer, QEvent, QThread, Signal
+from PySide6.QtCore import QObject, QTimer, QEvent
 from PySide6.QtWidgets import QApplication
 from core.ollama.ollama_manager import ServerManager
 from core.mlx.mlx_manager import MlxManager
@@ -55,7 +55,7 @@ class AppController(QObject):
         self.window.chat_view.input_field.returnPressed.connect(self.handle_send_message)
         self.window.dynamic_island.left_btn.clicked.connect(self.handle_back_requested)
         
-        self.chat_logic.thinking_started.connect(lambda: self.window.chat_view.add_chat_bubble("Thinking...", is_me=False, sender_name="Gemma"))
+        self.chat_logic.thinking_started.connect(self._on_thinking_started)
         self.chat_logic.chunk_delivered.connect(self.window.chat_view.update_last_bubble_stream)
         self.chat_logic.status_flag.connect(self.handle_task_status)
         
@@ -68,6 +68,11 @@ class AppController(QObject):
         self.window.selection_view.model_selected.connect(self.handle_model_selection)
         
         self.window.close_requested = self.handle_close_event
+
+    def _on_thinking_started(self):
+        active = self.ollama.active_model if self.current_engine == "Ollama" else self.mlx_active_model
+        sender_name = active if active else "AI"
+        self.window.chat_view.add_chat_bubble("Thinking...", is_me=False, sender_name=sender_name)
 
     # 마우스 휠 이벤트를 가로채서 특정 조건 시 홈 화면으로 슬라이드 복귀
     def eventFilter(self, obj, event):

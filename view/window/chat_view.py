@@ -8,9 +8,8 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QFrame, QLabel
 )
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation
+from PySide6.QtCore import Qt, QTimer
 from view.components.ui_scroll_area import SmoothScrollArea
-from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_chat_bubble import ChatItem
 from view.components.ui_chat_input import CustomInput
 

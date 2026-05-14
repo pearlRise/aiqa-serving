@@ -8,9 +8,8 @@
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QFrame
 )
-from PySide6.QtCore import Qt, QTimer, QPropertyAnimation, Signal
+from PySide6.QtCore import Qt
 from view.components.ui_scroll_area import SmoothScrollArea
-from view.components.ui_round_button import SmoothRoundButton
 from view.components.ui_menu_button import MenuButton
 
 class TemplateView(QWidget):
