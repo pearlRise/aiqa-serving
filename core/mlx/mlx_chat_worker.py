@@ -8,7 +8,6 @@
 from PySide6.QtCore import QThread, Signal
 from tool.exception_logging import log_error
 
-# MLX 엔진에서 채팅 텍스트를 스트리밍으로 받아오는 백그라운드 워커
 class MlxChatWorker(QThread):
     chunk_received = Signal(str)
     status_flag = Signal(str, str, str)
@@ -19,7 +18,6 @@ class MlxChatWorker(QThread):
         self.prompt = prompt
         self.is_cancelled = False
 
-    # 1. 모델 로드 상태 체크 후 응답 스트리밍 수신 시작
     def run(self):
         if not self.mlx.active_model:
             log_error("MLX model is not loaded")
@@ -28,7 +26,6 @@ class MlxChatWorker(QThread):
 
         self.status_flag.emit("chat_worker", "start", "Generating...")
         try:
-            # 2. MLX 스트림 청크를 UI 뷰에 실시간 전송
             for chunk in self.mlx.chat_stream(self.prompt):
                 if self.is_cancelled:
                     self.status_flag.emit("chat_worker", "end", "Stopped")
@@ -36,6 +33,5 @@ class MlxChatWorker(QThread):
                 self.chunk_received.emit(chunk)
             self.status_flag.emit("chat_worker", "end", "Generated")
         except Exception as e:
-            # MLX 모델 메모리 부족 또는 추론 중 예외 처리
             log_error("Chat stream inference failed", e)
             self.status_flag.emit("chat_worker", "exception", "Exception")

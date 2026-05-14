@@ -9,7 +9,6 @@ import os
 from tool.exception_logging import log_error
 from tool.evaluation_tps import TPSMeter
 
-# Apple MLX 프레임워크 기반 LLM 모델 제어 및 텍스트 스트림 매니저
 class MlxManager:
     def __init__(self):
         self.model = None
@@ -46,13 +45,10 @@ class MlxManager:
         mx.eval(self.model)
         self.active_model = model_name
         
-        # --- Drafter (Speculative Decoding) 로드 로직 ---
-        # 경로 탐색 로직을 제거하고, gemma-4 모델 계열에 대해 특정 어시스턴트 모델 경로를 하드코딩합니다.
         base_assistant_path = os.path.join("models", "mlx", "models--mlx-community--gemma-4-26B-A4B-it-assistant-bf16")
         print(f"🔍 [MLX-VLM] Checking drafter path: {os.path.abspath(base_assistant_path)}", flush=True)
 
         if os.path.exists(base_assistant_path) and "gemma-4" in model_name.lower():
-            # HF 캐시 구조(blobs, snapshots 등)를 대비하여 config.json이 있는 실제 경로를 탐색합니다.
             actual_assistant_path = base_assistant_path
             if not os.path.exists(os.path.join(actual_assistant_path, 'config.json')):
                 for root, dirs, files in os.walk(base_assistant_path):
@@ -62,10 +58,9 @@ class MlxManager:
 
             try:
                 from mlx_vlm.speculative.drafters import load_drafter
-                self.draft_kind = "mtp" # gemma-4는 mtp 사용
+                self.draft_kind = "mtp"
                 
                 loaded_drafter = load_drafter(actual_assistant_path, kind=self.draft_kind)
-                # load_drafter가 (model, processor) 형태의 튜플을 반환할 수 있으므로, 모델 객체만 안전하게 추출합니다.
                 self.drafter = loaded_drafter[0] if isinstance(loaded_drafter, tuple) else loaded_drafter
                 
                 mx.eval(self.drafter)
@@ -120,19 +115,9 @@ class MlxManager:
             meter = TPSMeter()
             meter.start()
             
-            import time
-            last_chunk_time = time.time()
-
             for chunk in response:
-                current_time = time.time()
-                
-                # MLX stream_generate는 Draft Hit 여부와 무관하게 청크를 1개씩 순차 반환합니다.
-                # 연속된 토큰이 10ms(0.01초) 이하로 매우 빠르게 반환되면 Draft Hit으로 판별합니다.
-                    
                 meter.record_token()
-                last_chunk_time = current_time
 
-                # stream_generate가 반환하는 객체에서 텍스트 속성을 안전하게 추출
                 yield chunk.text if hasattr(chunk, 'text') else chunk
                 
             meter.stop("MLX")
