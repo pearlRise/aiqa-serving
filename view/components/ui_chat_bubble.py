@@ -93,7 +93,7 @@ class ChatItem(QWidget):
         self.bubble.setFixedSize(actual_text_width, text_height)
         self.bg_frame.setFixedSize(actual_text_width + (self.padding_x * 2) + self.tail_width, text_height + (self.padding_y * 2))
         if hasattr(self, 'name_label'):
-            self.name_label.setMaximumWidth(int(window_width * 0.688))
+            self.name_label.setFixedWidth(self.bg_frame.width())
         self.setFixedHeight(self.main_layout.sizeHint().height())
         
     # 연속 메시지 시 이전 메시지의 꼬리와 시간 숨김 처리

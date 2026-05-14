@@ -7,6 +7,7 @@
 #============================================================
 import os
 from tool.exception_logging import log_error
+from tool.evaluation_tps import TPSMeter
 
 # Apple MLX 프레임워크 기반 LLM 모델 제어 및 텍스트 스트림 매니저
 class MlxManager:
@@ -91,10 +92,10 @@ class MlxManager:
             )
 
             generate_kwargs = {
-                model=self.model, 
-                processor=self.processor, 
-                prompt=prompt,
-                max_tokens=1024
+                "model": self.model, 
+                "processor": self.processor, 
+                "prompt": prompt,
+                "max_tokens": 1024
             }
 
             if self.drafter:
@@ -107,9 +108,15 @@ class MlxManager:
 
             response = stream_generate(**generate_kwargs)
             
+            meter = TPSMeter()
+            meter.start()
+            
             for chunk in response:
+                meter.record_token()
                 # stream_generate가 반환하는 객체에서 텍스트 속성을 안전하게 추출
                 yield chunk.text if hasattr(chunk, 'text') else chunk
+                
+            meter.stop("MLX")
             
         except Exception as e:
             log_error("Error in MLX chat generation", e)
