@@ -47,25 +47,33 @@ class MlxManager:
         self.active_model = model_name
         
         # --- Drafter (Speculative Decoding) 로드 로직 ---
-        potential_drafter = model_name.replace("it-bf16", "it-assistant-bf16").replace("it", "it-assistant")
-        assistant_path = os.path.join("models", "mlx", potential_drafter)
-        
-        # 특정 모델명에 대한 Fallback 경로 탐색
-        if not os.path.exists(assistant_path):
-            fallback = os.path.join("models", "mlx", "gemma-4-26B-A4B-it-assistant-bf16")
-            if os.path.exists(fallback) and "gemma-4" in model_name.lower():
-                assistant_path = fallback
+        # 경로 탐색 로직을 제거하고, gemma-4 모델 계열에 대해 특정 어시스턴트 모델 경로를 하드코딩합니다.
+        base_assistant_path = os.path.join("models", "mlx", "models--mlx-community--gemma-4-26B-A4B-it-assistant-bf16")
+        print(f"🔍 [MLX-VLM] Checking drafter path: {os.path.abspath(base_assistant_path)}", flush=True)
 
-        if os.path.exists(assistant_path):
+        if os.path.exists(base_assistant_path) and "gemma-4" in model_name.lower():
+            # HF 캐시 구조(blobs, snapshots 등)를 대비하여 config.json이 있는 실제 경로를 탐색합니다.
+            actual_assistant_path = base_assistant_path
+            if not os.path.exists(os.path.join(actual_assistant_path, 'config.json')):
+                for root, dirs, files in os.walk(base_assistant_path):
+                    if 'config.json' in files:
+                        actual_assistant_path = root
+                        break
+
             try:
                 from mlx_vlm.speculative.drafters import load_drafter
-                self.draft_kind = "mtp" if "gemma-4" in model_name.lower() else "dflash"
+                self.draft_kind = "mtp" # gemma-4는 mtp 사용
                 
-                self.drafter = load_drafter(assistant_path, kind=self.draft_kind)
+                loaded_drafter = load_drafter(actual_assistant_path, kind=self.draft_kind)
+                # load_drafter가 (model, processor) 형태의 튜플을 반환할 수 있으므로, 모델 객체만 안전하게 추출합니다.
+                self.drafter = loaded_drafter[0] if isinstance(loaded_drafter, tuple) else loaded_drafter
+                
                 mx.eval(self.drafter)
-                print(f"🚀 [MLX-VLM] Drafter ({self.draft_kind}) loaded from {assistant_path}")
+                print(f"🚀 [MLX-VLM] Drafter ({self.draft_kind}) loaded from {actual_assistant_path}", flush=True)
             except Exception as e:
                 log_error("Failed to load drafter model", e)
+        else:
+            print(f"⚠️ [MLX-VLM] Drafter condition failed. Path exists: {os.path.exists(base_assistant_path)}, 'gemma-4' in model_name: {'gemma-4' in model_name.lower()}", flush=True)
 
         return True
 
@@ -99,6 +107,7 @@ class MlxManager:
             }
 
             if self.drafter:
+                print("⚡️ [MLX-VLM] Starting Speculative Decoding (MTP) Generation...", flush=True)
                 generate_kwargs["draft_model"] = self.drafter
                 generate_kwargs["draft_kind"] = self.draft_kind
                 generate_kwargs["draft_block_size"] = 6
@@ -111,8 +120,18 @@ class MlxManager:
             meter = TPSMeter()
             meter.start()
             
+            import time
+            last_chunk_time = time.time()
+
             for chunk in response:
+                current_time = time.time()
+                
+                # MLX stream_generate는 Draft Hit 여부와 무관하게 청크를 1개씩 순차 반환합니다.
+                # 연속된 토큰이 10ms(0.01초) 이하로 매우 빠르게 반환되면 Draft Hit으로 판별합니다.
+                    
                 meter.record_token()
+                last_chunk_time = current_time
+
                 # stream_generate가 반환하는 객체에서 텍스트 속성을 안전하게 추출
                 yield chunk.text if hasattr(chunk, 'text') else chunk
                 
