@@ -6,7 +6,8 @@
 # - caution: Requires mlx_lm library and valid model paths.
 #============================================================
 import os
-from core.exception_logging import log_error
+from tool.exception_logging import log_error
+from tool.evaluation_tps import TPSMeter
 
 # Apple MLX 프레임워크 기반 LLM 모델 제어 및 텍스트 추론 전담 매니저
 class MlxManager:
@@ -101,8 +102,13 @@ class MlxManager:
 
             # 최대 토큰 제한(1024)을 적용하여 텍스트 스트리밍 생성
             response = stream_generate(self.model, self.tokenizer, prompt=prompt, **generate_kwargs)
+            
+            meter = TPSMeter()
+            meter.start()
             for chunk in response:
+                meter.record_token()
                 yield chunk.text if hasattr(chunk, 'text') else str(chunk)
+            meter.stop("MLX")
         except Exception as e:
             # 추론 중 메모리 부족 또는 모델 이상 발생 시 예외 처리
             log_error("Error in MLX chat generation", e)

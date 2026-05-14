@@ -6,7 +6,7 @@
 # - caution: Safely handle thread cancellation to avoid crashes.
 #============================================================
 from PySide6.QtCore import QThread, Signal
-from core.exception_logging import log_error
+from tool.exception_logging import log_error
 
 # Ollama 엔진에서 채팅 텍스트를 스트리밍으로 받아오는 백그라운드 워커
 class OllamaChatWorker(QThread):

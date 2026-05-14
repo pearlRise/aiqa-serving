@@ -10,7 +10,8 @@ import requests
 import os
 import signal
 import json
-from core.exception_logging import log_error
+from tool.exception_logging import log_error
+from tool.evaluation_tps import TPSMeter
 
 # Ollama의 프로세스 생명주기 및 API 통신을 전담하는 매니저
 class ServerManager:
@@ -131,12 +132,16 @@ class ServerManager:
                 }
             }
             with requests.post(url, json=data, timeout=30, stream=True) as response:
+                meter = TPSMeter()
+                meter.start()
                 # 청크 디코딩 후 response 필드만 추출
                 for line in response.iter_lines():
                     if line:
                         chunk = json.loads(line.decode("utf-8"))
+                        meter.record_token()
                         yield chunk.get("response", "")
                         if chunk.get("done"):
+                            meter.stop("Ollama")
                             break
         except requests.exceptions.ConnectionError as e:
             # 통신 오류 시 프로세스 강제 종료 대비 예외 처리

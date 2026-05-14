@@ -8,7 +8,7 @@
 from PySide6.QtCore import QObject, Signal
 from core.ollama.ollama_chat_worker import OllamaChatWorker
 from core.mlx.mlx_chat_worker import MlxChatWorker
-from core.exception_logging import log_error
+from tool.exception_logging import log_error
 
 # 채팅 입력과 엔진(Ollama/MLX) 간의 처리를 중재하는 컨트롤러
 class ChatController(QObject):
