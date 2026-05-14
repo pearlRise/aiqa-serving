@@ -15,6 +15,7 @@ class MlxManager:
         self.model = None
         self.tokenizer = None
         self.active_model = None
+        self.drafter = None
 
     # MLX 라이브러리를 동적 로드하고 모델 경로를 검증하여 메모리에 적재
     def load_model(self, model_name):
@@ -48,6 +49,18 @@ class MlxManager:
         self.model, self.tokenizer = mlx_lm.load(actual_model_path)
         mx.eval(self.model)
         self.active_model = model_name
+        
+        # 4. MTP(Multi-Token Prediction) 드래프터 모델 로드 시도
+        # 다운로드하신 폴더 이름이 정확히 일치해야 합니다. (models/mlx/gemma-4-26B-A4B-it-assistant-bf16)
+        assistant_path = os.path.join("models", "mlx", "gemma-4-26B-A4B-it-assistant-bf16")
+        if os.path.exists(assistant_path):
+            try:
+                from mlx_lm.utils import load_drafter
+                self.drafter = load_drafter(assistant_path, kind="mtp")
+                mx.eval(self.drafter)
+            except Exception as e:
+                log_error("Failed to load drafter model", e)
+                
         return True
 
     # GPU 메모리 확보를 위해 현재 로드된 모델과 토크나이저 할당 해제
@@ -55,6 +68,7 @@ class MlxManager:
         self.model = None
         self.tokenizer = None
         self.active_model = None
+        self.drafter = None
         return True
 
     # MLX_LM의 stream_generate를 사용하여 프롬프트 추론 청크 yield
@@ -75,8 +89,18 @@ class MlxManager:
             sampler = make_sampler(temp=0.7)
             logits_processors = make_logits_processors(repetition_penalty=1.15)
 
+            generate_kwargs = {
+                "max_tokens": 1024,
+                "sampler": sampler,
+                "logits_processors": logits_processors
+            }
+            
+            if self.drafter:
+                generate_kwargs["assistant_model"] = self.drafter
+                generate_kwargs["draft_block_size"] = 6
+
             # 최대 토큰 제한(1024)을 적용하여 텍스트 스트리밍 생성
-            response = stream_generate(self.model, self.tokenizer, prompt=prompt, max_tokens=1024, sampler=sampler, logits_processors=logits_processors)
+            response = stream_generate(self.model, self.tokenizer, prompt=prompt, **generate_kwargs)
             for chunk in response:
                 yield chunk.text if hasattr(chunk, 'text') else str(chunk)
         except Exception as e:
