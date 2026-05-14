@@ -143,3 +143,25 @@ class ChatView(QWidget):
                 if visible_top <= widget_y <= visible_bottom:
                     widget.update_width(self.width())
                     widget.needs_width_update = False
+
+    def set_send_button_state(self, state):
+        if state == "stop":
+            self.send_btn.setText("■")
+            self.send_btn.setStyleSheet("""
+                QPushButton { 
+                    background-color: #FF3B30; color: white; 
+                    border-radius: 20px;
+                    font-weight: bold; font-size: 14px; border: none; 
+                }
+                QPushButton:pressed { background-color: #C02E24; }
+            """)
+        else:
+            self.send_btn.setText("↑")
+            self.send_btn.setStyleSheet("""
+                QPushButton { 
+                    background-color: #007AFF; color: white; 
+                    border-radius: 20px;
+                    font-weight: bold; font-size: 16px; border: none; 
+                }
+                QPushButton:pressed { background-color: #0051A8; }
+            """)

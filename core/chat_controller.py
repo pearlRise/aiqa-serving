@@ -5,65 +5,9 @@
 # - summary: Manages chat requests for Ollama and MLX.
 # - caution: Ensure QThread safety when streaming chunks.
 #============================================================
-from PySide6.QtCore import QObject, Signal, QThread
-
-# Ollama 엔진에서 채팅 텍스트를 스트리밍으로 받아오는 백그라운드 워커
-class ChatWorker(QThread):
-    chunk_received = Signal(str)
-    status_flag = Signal(str, str, str)
-
-    # 워커 초기화 및 질의(prompt) 세팅
-    def __init__(self, ollama_manager, model_name, prompt):
-        super().__init__()
-        self.ollama = ollama_manager
-        self.model_name = model_name
-        self.prompt = prompt
-
-    # 1. 서버 상태 체크 후 응답 스트리밍 수신 시작
-    def run(self):
-        if not self.ollama.is_running():
-            print("ChatWorker Error: Ollama server is not running.")
-            self.status_flag.emit("chat_worker", "exception", "Exception")
-            return
-
-        self.status_flag.emit("chat_worker", "start", "Generating...")
-        try:
-            # 2. 스트림 청크를 UI 뷰에 실시간 전송
-            for chunk in self.ollama.chat_stream(self.model_name, self.prompt):
-                self.chunk_received.emit(chunk)
-            self.status_flag.emit("chat_worker", "end", "Generated")
-        except Exception as e:
-            # 연결 끊김, 모델 언로드 등 스트리밍 중 예외 처리
-            print(f"ChatWorker Error: {e}")
-            self.status_flag.emit("chat_worker", "exception", "Exception")
-
-# MLX 엔진에서 채팅 텍스트를 스트리밍으로 받아오는 백그라운드 워커
-class MlxChatWorker(QThread):
-    chunk_received = Signal(str)
-    status_flag = Signal(str, str, str)
-
-    def __init__(self, mlx_manager, prompt):
-        super().__init__()
-        self.mlx = mlx_manager
-        self.prompt = prompt
-
-    # 1. 모델 로드 상태 체크 후 응답 스트리밍 수신 시작
-    def run(self):
-        if not self.mlx.active_model:
-            print("MlxChatWorker Error: MLX model is not loaded.")
-            self.status_flag.emit("chat_worker", "exception", "Exception")
-            return
-
-        self.status_flag.emit("chat_worker", "start", "Generating...")
-        try:
-            # 2. MLX 스트림 청크를 UI 뷰에 실시간 전송
-            for chunk in self.mlx.chat_stream(self.prompt):
-                self.chunk_received.emit(chunk)
-            self.status_flag.emit("chat_worker", "end", "Generated")
-        except Exception as e:
-            # MLX 모델 메모리 부족 또는 추론 중 예외 처리
-            print(f"MlxChatWorker Error: {e}")
-            self.status_flag.emit("chat_worker", "exception", "Exception")
+from PySide6.QtCore import QObject, Signal
+from core.ollama.ollama_chat_worker import OllamaChatWorker
+from core.mlx.mlx_chat_worker import MlxChatWorker
 
 # 채팅 입력과 엔진(Ollama/MLX) 간의 처리를 중재하는 컨트롤러
 class ChatController(QObject):
@@ -95,7 +39,7 @@ class ChatController(QObject):
             if not self.ollama.active_model:
                 print("ChatController Error: No Ollama model selected.")
                 return
-            self.worker = ChatWorker(self.ollama, self.ollama.active_model, text)
+            self.worker = OllamaChatWorker(self.ollama, self.ollama.active_model, text)
         else:
             # 2. MLX 엔진이 선택된 경우 MLX 워커 초기화
             if not self.mlx or not self.mlx.active_model:
@@ -114,3 +58,8 @@ class ChatController(QObject):
         if self.worker:
             self.worker.deleteLater()
             self.worker = None
+
+    # 진행 중인 채팅 생성 작업을 취소
+    def cancel_generation(self):
+        if self.worker and self.worker.isRunning():
+            self.worker.is_cancelled = True
