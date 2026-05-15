@@ -1,7 +1,7 @@
 #============================================================
 # - subject: chat_view.py
 # - created: 2026-05-11
-# - updated: 2026-05-14
+# - updated: 2026-05-15
 # - summary: Chat interface view with message bubbling and input.
 # - caution: Ensure width updates on window resize for bubbles.
 #============================================================
@@ -31,21 +31,15 @@ class ChatView(QWidget):
         self.chat_layout = QVBoxLayout(self.chat_content)
         self.chat_layout.setContentsMargins(16, 30, 8, 16)
         self.chat_layout.setSpacing(0) 
-        self.chat_layout.setAlignment(Qt.AlignTop)
+        self.chat_layout.setAlignment(Qt.AlignBottom)
         self.scroll.setWidget(self.chat_content)
         self.main_layout.addWidget(self.scroll, 1)
 
-        self.resize_timer = QTimer(self)
-        self.resize_timer.setSingleShot(True)
-        self.resize_timer.timeout.connect(self.update_visible_bubbles)
         self.last_width = self.width()
 
-        # UI 렌더링 병목 해소를 위한 스트리밍 청크 버퍼 및 타이머
-        self.stream_buffer = ""
-        self.stream_timer = QTimer(self)
-        self.stream_timer.timeout.connect(self.flush_stream_buffer)
-
         self.scroll.verticalScrollBar().valueChanged.connect(self.update_visible_bubbles)
+        self.scroll.verticalScrollBar().rangeChanged.connect(self.on_range_changed)
+        self._auto_scroll = True
 
         self.input_container = QWidget()
         self.input_layout = QHBoxLayout(self.input_container)
@@ -77,10 +71,12 @@ class ChatView(QWidget):
         self.input_field.setFocus()
         
     def add_chat_bubble(self, text, is_me, sender_name=""):
+        """Add a new chat bubble to the layout."""
         current_sender_id = "ME" if is_me else sender_name
         is_consecutive = (self.last_sender_id == current_sender_id)
 
-        if is_consecutive and self.last_chat_item:
+        # Safely remove tail and time from the previous consecutive bubble
+        if is_consecutive and self.last_chat_item and hasattr(self.last_chat_item, 'remove_tail_and_time'):
             self.last_chat_item.remove_tail_and_time()
 
         bubble = ChatItem(text, is_me=is_me, sender_name=sender_name, is_consecutive=is_consecutive)
@@ -90,30 +86,37 @@ class ChatView(QWidget):
         self.last_sender_id = current_sender_id
         self.last_chat_item = bubble
         
-        QTimer.singleShot(10, self.scroll_to_bottom)
+        self.scroll_to_bottom()
+
+    def on_range_changed(self, min_val, max_val):
+        """Scroll to the bottom automatically if auto-scrolling is enabled."""
+        if getattr(self, '_auto_scroll', True):
+            self.scroll.verticalScrollBar().setValue(max_val)
 
     def update_last_bubble_stream(self, chunk):
-        if self.last_chat_item and not self.last_chat_item.is_me:
-            # 매 토큰마다 무거운 UI 레이아웃 연산을 하지 않고 버퍼에 누적 후 타이머 시작
-            self.stream_buffer += chunk
-            if not self.stream_timer.isActive():
-                self.stream_timer.start(50)  # 50ms (초당 20프레임) 간격으로 한 번에 갱신
-
-    def flush_stream_buffer(self):
-        if not self.stream_buffer or not self.last_chat_item:
-            self.stream_timer.stop()
+        """Update the last bot bubble with new stream chunks."""
+        if not self.last_chat_item or self.last_chat_item.is_me:
             return
             
+        scrollbar = self.scroll.verticalScrollBar()
+        self._auto_scroll = (scrollbar.value() == scrollbar.maximum())
+
         current_text = self.last_chat_item.bubble.toPlainText()
-        new_text = self.stream_buffer if current_text == "Thinking..." else current_text + self.stream_buffer
-        self.last_chat_item.update_text(new_text)
-        self.last_chat_item.update_width(self.width())
-        QTimer.singleShot(0, self.scroll_to_bottom)
+        if current_text == "Thinking...":
+            self.last_chat_item.update_text(chunk)
+        else:
+            self.last_chat_item.append_chunk(chunk)
+            
+        size_changed = self.last_chat_item.update_width(self.width())
         
-        self.stream_buffer = ""
-        self.stream_timer.stop()
+        if size_changed:
+            # 레이아웃을 즉시 적용하고 부모를 강제로 다시 그려 중간 상태(직사각형) 노출을 차단합니다.
+            self.chat_layout.activate()
+            self.chat_content.repaint()
+        # Note: redundant scrollbar.setValue() removed; on_range_changed safely handles scrolling.
 
     def adjust_input_height(self):
+        """Dynamically adjust input field height based on document content."""
         doc = self.input_field.document()
         doc_height = doc.size().height()
         
@@ -128,13 +131,16 @@ class ChatView(QWidget):
             
         if self.input_field.height() != new_height:
             self.input_field.setFixedHeight(new_height)
+            # Ensure scrolling to bottom after layout recalculation
             QTimer.singleShot(0, self.scroll_to_bottom)
 
     def scroll_to_bottom(self):
+        self._auto_scroll = True
         scrollbar = self.scroll.verticalScrollBar()
         scrollbar.setValue(scrollbar.maximum())
     
     def resizeEvent(self, event):
+        """Handle window resize to trigger lazy width updates on chat bubbles."""
         super().resizeEvent(event)
         
         if self.width() != self.last_width:
@@ -142,13 +148,16 @@ class ChatView(QWidget):
             
             for i in range(self.chat_layout.count()):
                 item = self.chat_layout.itemAt(i)
-                widget = item.widget() if item else None
+                if not item:
+                    continue
+                widget = item.widget()
                 if isinstance(widget, ChatItem):
                     widget.needs_width_update = True
             
-            self.resize_timer.start(100)
+            self.update_visible_bubbles()
 
     def update_visible_bubbles(self):
+        """Deferred width update for visible bubbles to improve resize performance."""
         scroll_y = self.scroll.verticalScrollBar().value()
         viewport_height = self.scroll.viewport().height()
         
@@ -158,14 +167,18 @@ class ChatView(QWidget):
 
         for i in range(self.chat_layout.count()):
             item = self.chat_layout.itemAt(i)
-            widget = item.widget() if item else None
-            if isinstance(widget, ChatItem) and widget.needs_width_update:
+            if not item:
+                continue
+            widget = item.widget()
+            # Safely check if widget is a ChatItem and needs width update
+            if isinstance(widget, ChatItem) and getattr(widget, 'needs_width_update', False):
                 widget_y = widget.pos().y()
                 if visible_top <= widget_y <= visible_bottom:
                     widget.update_width(self.width())
                     widget.needs_width_update = False
 
     def set_send_button_state(self, state):
+        """Toggle send button between 'Send' and 'Stop' statuses."""
         if state == "stop":
             self.send_btn.setText("■")
             self.send_btn.setStyleSheet("""
@@ -186,3 +199,7 @@ class ChatView(QWidget):
                 }
                 QPushButton:pressed { background-color: #0051A8; }
             """)
+            
+            if self.last_chat_item and not self.last_chat_item.is_me:
+                if hasattr(self.last_chat_item, 'finalize_generation'):
+                    self.last_chat_item.finalize_generation()
