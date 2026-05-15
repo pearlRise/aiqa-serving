@@ -6,7 +6,7 @@
 # - caution: Ensure proper memory management when loading/unloading models.
 #============================================================
 import os
-from tool.exception_logging import log_error
+from tool.exception_logging import log_error, log_info
 from tool.evaluation_tps import TPSMeter
 
 class MlxManager:
@@ -39,6 +39,7 @@ class MlxManager:
                     found = True
                     break
             if not found:
+                log_error("config.json not found in model path", Exception(actual_model_path))
                 raise FileNotFoundError("config.json not found in model path")
         
         self.model, self.processor = mlx_vlm.load(actual_model_path)
@@ -46,7 +47,7 @@ class MlxManager:
         self.active_model = model_name
         
         base_assistant_path = os.path.join("models", "mlx", "models--mlx-community--gemma-4-26B-A4B-it-assistant-bf16")
-        print(f"🔍 [MLX-VLM] Checking drafter path: {os.path.abspath(base_assistant_path)}", flush=True)
+        log_info(f"🔍 [MLX-VLM] Checking drafter path: {os.path.abspath(base_assistant_path)}")
 
         if os.path.exists(base_assistant_path) and "gemma-4" in model_name.lower():
             actual_assistant_path = base_assistant_path
@@ -64,11 +65,11 @@ class MlxManager:
                 self.drafter = loaded_drafter[0] if isinstance(loaded_drafter, tuple) else loaded_drafter
                 
                 mx.eval(self.drafter)
-                print(f"🚀 [MLX-VLM] Drafter ({self.draft_kind}) loaded from {actual_assistant_path}", flush=True)
+                log_info(f"🚀 [MLX-VLM] Drafter ({self.draft_kind}) loaded from {actual_assistant_path}")
             except Exception as e:
                 log_error("Failed to load drafter model", e)
         else:
-            print(f"⚠️ [MLX-VLM] Drafter condition failed. Path exists: {os.path.exists(base_assistant_path)}, 'gemma-4' in model_name: {'gemma-4' in model_name.lower()}", flush=True)
+            log_info(f"⚠️ [MLX-VLM] Drafter condition failed. Path exists: {os.path.exists(base_assistant_path)}, 'gemma-4' in model_name: {'gemma-4' in model_name.lower()}")
 
         return True
 
@@ -102,7 +103,7 @@ class MlxManager:
             }
 
             if self.drafter:
-                print("⚡️ [MLX-VLM] Starting Speculative Decoding (MTP) Generation...", flush=True)
+                log_info("⚡️ [MLX-VLM] Starting Speculative Decoding (MTP) Generation...")
                 generate_kwargs["draft_model"] = self.drafter
                 generate_kwargs["draft_kind"] = self.draft_kind
                 generate_kwargs["draft_block_size"] = 6

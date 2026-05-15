@@ -29,3 +29,21 @@ def log_error(summary: str, exception: Exception = None):
         log_msg += f" - {str(exception)}"
         
     print(log_msg)
+
+def log_info(summary: str):
+    """
+    Logs an info message in the format: YY-MM-DD HH:MM [{classname}][{methodname}]{summary}
+    """
+    frame = inspect.currentframe().f_back
+    method_name = frame.f_code.co_name
+    class_name = "Module"
+    
+    if 'self' in frame.f_locals:
+        class_name = frame.f_locals['self'].__class__.__name__
+    elif 'cls' in frame.f_locals:
+        class_name = frame.f_locals['cls'].__name__
+
+    time_str = datetime.now().strftime("%y-%m-%d %H:%M")
+    
+    log_msg = f"{time_str} [{class_name}][{method_name}]{summary}"
+    print(log_msg)

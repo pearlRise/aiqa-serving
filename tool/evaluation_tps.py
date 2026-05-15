@@ -6,6 +6,7 @@
 # - caution: None.
 #============================================================
 import time
+from tool.exception_logging import log_info
 
 class TPSMeter:
     def __init__(self):
@@ -36,4 +37,4 @@ class TPSMeter:
         
         tps = (self.token_count - 1) / gen_time if self.token_count > 1 and gen_time > 0 else 0.0
             
-        print(f"[{engine_name} Performance] TTFT: {ttft:.3f}s | TPS: {tps:.2f} tokens/sec | Total: {self.token_count} tokens")
+        log_info(f"[{engine_name} Performance] TTFT: {ttft:.3f}s | TPS: {tps:.2f} tokens/sec | Total: {self.token_count} tokens")
